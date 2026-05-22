@@ -1,0 +1,120 @@
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 0 0 40px;
+}
+
+.container {
+  width: 100%;
+  max-width: 480px;
+  padding: 0 20px;
+}
+
+/* ── Header ── */
+.header {
+  text-align: center;
+  padding: 48px 0 28px;
+}
+.emoji    { font-size: 56px; display: block; margin-bottom: 8px; }
+.titulo   { font-size: 32px; font-weight: 800; color: var(--primary); letter-spacing: -0.5px; }
+.subtitulo{ font-size: 13px; color: var(--admin); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+.pregunta { font-size: 16px; color: var(--muted); margin-top: 10px; }
+
+/* ── Lista ── */
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.vacio {
+  text-align: center;
+  color: var(--muted);
+  font-size: 15px;
+  padding: 32px 0;
+  white-space: pre-line;
+  line-height: 1.8;
+}
+
+/* ── Card perfil ── */
+.card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  border-left: 5px solid var(--admin);
+  box-shadow: var(--shadow);
+  width: 100%;
+  text-align: left;
+  transition: box-shadow 0.15s, transform 0.1s;
+}
+.card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
+}
+
+.cardEmoji  { font-size: 28px; }
+.cardInfo   { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.cardNombre { font-size: 16px; font-weight: 700; color: var(--primary); }
+
+.rolBadge {
+  display: inline-block;
+  background: #f5f3ff;
+  color: var(--admin);
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 2px 8px;
+  align-self: flex-start;
+}
+
+.arrow {
+  font-size: 28px;
+  color: var(--admin);
+  font-weight: 300;
+  line-height: 1;
+}
+
+/* ── Formulario ── */
+.form {
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+  box-shadow: var(--shadow);
+}
+
+.btnGuardar { margin-top: 4px; }
+
+/* ── Botón agregar ── */
+.btnAgregar {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 16px;
+  border: 2px dashed var(--primary);
+  border-radius: var(--radius-lg);
+  color: var(--primary);
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  transition: background 0.15s;
+}
+.btnAgregar:hover { background: rgba(26, 31, 58, 0.05); }
+
+.errorMsg {
+  color: var(--danger);
+  font-size: 13px;
+  text-align: center;
+  padding: 8px 0;
+}

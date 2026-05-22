@@ -1,0 +1,64 @@
+.content {
+  padding-top: 28px;
+}
+
+.bienvenida {
+  text-align: center;
+  padding: 8px 0 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.bienvenidaEmoji { font-size: 42px; }
+.bienvenidaTexto {
+  font-size: 14px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* ── Grid de cards ── */
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  padding: 18px 16px;
+  border-left: 5px solid;
+  box-shadow: var(--shadow);
+  width: 100%;
+  text-align: left;
+  transition: box-shadow 0.15s, transform 0.1s;
+}
+.card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
+}
+
+.cardEmoji { font-size: 30px; }
+.cardText  { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.cardLabel { font-size: 16px; font-weight: 700; color: var(--primary); }
+.cardDesc  { font-size: 12px; color: var(--muted); }
+.cardArrow { font-size: 28px; font-weight: 300; line-height: 1; }
+
+.footer {
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  padding-top: 28px;
+}
+
+@media (min-width: 520px) {
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+}

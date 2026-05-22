@@ -1,0 +1,96 @@
+.container {
+  max-width: 680px;
+  margin: 0 auto;
+  padding-bottom: 40px;
+}
+
+/* ── Tabs ── */
+.tabs {
+  display: flex;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 56px;
+  z-index: 10;
+}
+
+.tab {
+  flex: 1;
+  padding: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  border-bottom: 3px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tab:hover  { color: var(--primary); }
+.tabActive  { color: var(--primary); border-bottom-color: var(--primary); }
+
+.tabBadge {
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 10px;
+  padding: 1px 7px;
+}
+
+/* ── Lista ── */
+.lista {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Card de pedido ── */
+.card {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.numero {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--primary);
+  letter-spacing: -0.3px;
+}
+
+/* Badges de estado */
+.badge {
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 20px;
+  padding: 3px 10px;
+}
+.badgePendiente  { background: #eef2ff; color: #4338ca; }
+.badgeProceso    { background: #fef3c7; color: var(--warning); }
+.badgeCerrado    { background: #d1fae5; color: var(--success); }
+
+.cliente  { font-size: 14px; font-weight: 600; color: var(--primary); }
+.notas    { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bodeguero{ font-size: 13px; color: var(--muted); }
+.tiempo   { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+.errorMsg {
+  color: var(--danger);
+  text-align: center;
+  padding: 24px 20px;
+  font-size: 14px;
+}
