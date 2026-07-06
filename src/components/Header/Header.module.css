@@ -12,21 +12,22 @@
   box-shadow: 0 2px 8px rgba(0,0,0,0.25);
 }
 
-.left  { width: 80px; display: flex; align-items: center; }
-.right { width: 80px; display: flex; align-items: center; justify-content: flex-end; }
-
-.logo {
-  font-size: 24px;
-  line-height: 1;
-}
+.left  { width: 80px; display: flex; align-items: center; flex-shrink: 0; }
+.right { width: 80px; display: flex; align-items: center; justify-content: flex-end; flex-shrink: 0; }
 
 .title {
+  flex: 1;
   font-size: 17px;
   font-weight: 800;
   letter-spacing: -0.3px;
-  flex: 1;
+  color: #fff;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
+.logo     { font-size: 24px; line-height: 1; }
 
 .backBtn {
   color: #fff;
@@ -38,11 +39,7 @@
 }
 .backBtn:hover { opacity: 0.75; }
 
-.userRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+.userRow { display: flex; align-items: center; gap: 8px; }
 
 .userName {
   font-size: 12px;
@@ -55,7 +52,7 @@
 }
 
 .logoutBtn {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255,255,255,0.15);
   color: #fff;
   border-radius: 8px;
   padding: 5px 10px;
@@ -65,8 +62,7 @@
   white-space: nowrap;
   transition: background 0.15s;
 }
-.logoutBtn:hover { background: rgba(255,255,255,0.25); }
+.logoutBtn:hover { background: rgba(255,255,255,0.28); }
 
-@media (min-width: 600px) {
-  .userName { max-width: 180px; }
-}
+@media (max-width: 480px) { .userName { max-width: 70px; } }
+@media (min-width: 600px) { .userName { max-width: 180px; } }

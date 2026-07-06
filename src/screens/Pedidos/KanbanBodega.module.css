@@ -1,0 +1,96 @@
+/* Mobile-first: en el teléfono las columnas se apilan; en desktop van lado a lado. */
+.wrap { padding: 12px 14px 40px; max-width: 1400px; margin: 0 auto; }
+.error { text-align: center; color: #b91c1c; padding: 20px; }
+
+.board {
+  display: grid;
+  grid-template-columns: 1fr;   /* móvil: 1 columna apilada */
+  gap: 14px;
+}
+@media (min-width: 900px) {
+  .board { grid-template-columns: repeat(4, 1fr); align-items: start; }
+}
+
+/* ── Columna ── */
+.col {
+  background: var(--bg, #f4f6fa);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  border-top-width: 4px;
+  padding: 0 0 10px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.colActivos { border-top-color: #4338CA; }
+.colStarken { border-top-color: #1e8a44; }   /* Starken → verde */
+.colTransp  { border-top-color: #d97706; }   /* Transportistas → naranja */
+.colRetira  { border-top-color: #1a6bb5; }   /* Cliente retira → azul */
+
+.colHeader {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 14px 8px;
+  font-size: 15px; font-weight: 800; color: var(--primary);
+}
+.count {
+  font-size: 12px; font-weight: 800; background: rgba(0,0,0,0.07);
+  border-radius: 20px; padding: 2px 9px;
+}
+.vacio { text-align: center; color: var(--muted); font-size: 13px; padding: 14px 0; }
+
+/* ── Card (grande y táctil para móvil) ── */
+.card {
+  margin: 0 10px;
+  background: var(--card, #fff);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 7px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.cardTop { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.numero  { font-size: 15px; font-weight: 800; color: var(--primary); }
+.cliente { font-size: 14px; color: var(--text); font-weight: 600; }
+.tiempo  { font-size: 11px; color: var(--muted); }
+
+/* Badge de transportista — resaltado y con color por destino */
+.transpBadge {
+  font-size: 12px; font-weight: 800;
+  border-radius: 20px; padding: 4px 12px;
+  white-space: nowrap; letter-spacing: 0.01em;
+}
+.transpDestino { align-self: flex-start; }   /* previsualización bajo el cliente (activos) */
+.transp_starken        { background: #d1fae5; color: #1e8a44; }   /* verde   */
+.transp_transportistas { background: #fef3c7; color: #b45309; }   /* naranja */
+.transp_cliente_retira { background: #e8f1fb; color: #1a6bb5; }   /* azul    */
+
+/* Acciones — botones grandes (mín. táctil 44px) */
+.acciones { display: flex; gap: 8px; margin-top: 4px; }
+.btnVer, .btnCerrar {
+  flex: 1; min-height: 44px;
+  border-radius: 10px; font-size: 14px; font-weight: 800; cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.btnVer {
+  background: transparent; border: 1.5px solid var(--border); color: var(--primary);
+}
+.btnVer:hover { background: var(--bg); }
+.btnCerrar {
+  background: #1e8a44; border: none; color: #fff;
+}
+.btnCerrar:hover { opacity: 0.9; }
+.btnCerrar:active { transform: scale(0.98); }
+.btnCerrar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Modal detalle ── */
+.modalBody { display: flex; flex-direction: column; gap: 14px; }
+.modalInfo { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+.itemsBox { display: flex; flex-direction: column; gap: 6px; }
+.itemsTitulo { font-size: 13px; font-weight: 800; color: var(--muted); }
+.itemRow {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg); border-radius: 8px; padding: 8px 10px;
+}
+.itemIcono { font-size: 16px; }
+.itemInfo { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.itemNombre { font-size: 13px; font-weight: 600; color: var(--text); }
+.itemCodigo { font-size: 11px; color: var(--muted); }
+.itemQty { font-size: 14px; font-weight: 800; color: var(--primary); }

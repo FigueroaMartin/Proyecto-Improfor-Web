@@ -1,0 +1,30 @@
+.banner {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  gap: 14px; flex-wrap: wrap;
+  background: #1a6bb5; color: #fff;
+  padding: 10px 16px;
+  font-size: 14px; font-weight: 600;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+  animation: bajar 0.3s ease;
+}
+
+@keyframes bajar {
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(0); }
+}
+
+.texto { letter-spacing: 0.01em; }
+
+.btn {
+  background: #fff; color: #1a6bb5;
+  border: none; border-radius: 8px;
+  padding: 6px 16px;
+  font-size: 13px; font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.btn:hover  { opacity: 0.88; }
+.btn:active { transform: scale(0.97); }

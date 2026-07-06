@@ -96,6 +96,25 @@
 
 .btnGuardar { margin-top: 4px; }
 
+/* ── Selector de rol ── */
+.rolSelector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rolChip {
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+  transition: all 0.12s;
+  text-align: left;
+}
+.rolChip:hover { border-color: var(--primary); color: var(--primary); }
+
 /* ── Botón agregar ── */
 .btnAgregar {
   display: block;

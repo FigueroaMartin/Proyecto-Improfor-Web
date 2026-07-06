@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getBodegueros, insertBodeguero } from '../../db'
+import { ROLES, normalizarRol } from '../../roles'
 import Spinner from '../../components/Spinner'
 import styles from './SeleccionPerfil.module.css'
 
 export default function SeleccionPerfil() {
   const navigate  = useNavigate()
-  const [perfiles,   setPerfiles]   = useState([])
-  const [cargando,   setCargando]   = useState(true)
-  const [mostrando,  setMostrando]  = useState(false)
+  const [perfiles,    setPerfiles]    = useState([])
+  const [cargando,    setCargando]    = useState(true)
+  const [mostrando,   setMostrando]   = useState(false)
   const [nuevoNombre, setNuevoNombre] = useState('')
-  const [guardando,  setGuardando]  = useState(false)
-  const [error,      setError]      = useState('')
+  const [nuevoRol,    setNuevoRol]    = useState('admin_pedidos')
+  const [guardando,   setGuardando]   = useState(false)
+  const [error,       setError]       = useState('')
 
   useEffect(() => {
     // Si ya hay sesión activa, ir directo al dashboard
@@ -24,7 +26,8 @@ export default function SeleccionPerfil() {
     setCargando(true)
     try {
       const todos = await getBodegueros()
-      setPerfiles(todos.filter(b => b.rol === 'administrador'))
+      // Solo perfiles del panel web (los 'bodeguero' pertenecen a la app móvil)
+      setPerfiles(todos.filter(b => normalizarRol(b.rol) !== null))
     } catch (e) {
       setError('Error al cargar perfiles: ' + e.message)
     } finally {
@@ -33,7 +36,8 @@ export default function SeleccionPerfil() {
   }
 
   const elegir = (perfil) => {
-    localStorage.setItem('admin_activo', JSON.stringify({ id: perfil.id, nombre: perfil.nombre, rol: perfil.rol }))
+    const rol = normalizarRol(perfil.rol)
+    localStorage.setItem('admin_activo', JSON.stringify({ id: perfil.id, nombre: perfil.nombre, rol }))
     navigate('/dashboard', { replace: true })
   }
 
@@ -42,8 +46,9 @@ export default function SeleccionPerfil() {
     if (!nuevoNombre.trim()) return
     setGuardando(true)
     try {
-      await insertBodeguero({ nombre: nuevoNombre.trim(), rol: 'administrador' })
+      await insertBodeguero({ nombre: nuevoNombre.trim(), rol: nuevoRol })
       setNuevoNombre('')
+      setNuevoRol('admin_pedidos')
       setMostrando(false)
       await cargar()
     } catch (e) {
@@ -72,19 +77,27 @@ export default function SeleccionPerfil() {
           <div className={styles.lista}>
             {perfiles.length === 0 && !mostrando && (
               <p className={styles.vacio}>
-                No hay administradores creados.{'\n'}Agrega el primero abajo.
+                No hay perfiles creados.{'\n'}Agrega el primero abajo.
               </p>
             )}
-            {perfiles.map(p => (
-              <button key={p.id} className={styles.card} onClick={() => elegir(p)}>
-                <span className={styles.cardEmoji}>🔑</span>
-                <div className={styles.cardInfo}>
-                  <span className={styles.cardNombre}>{p.nombre}</span>
-                  <span className={styles.rolBadge}>Administrador</span>
-                </div>
-                <span className={styles.arrow}>›</span>
-              </button>
-            ))}
+            {perfiles.map(p => {
+              const rol = ROLES[normalizarRol(p.rol)]
+              return (
+                <button key={p.id} className={styles.card} onClick={() => elegir(p)}>
+                  <span className={styles.cardEmoji}>{rol.emoji}</span>
+                  <div className={styles.cardInfo}>
+                    <span className={styles.cardNombre}>{p.nombre}</span>
+                    <span
+                      className={styles.rolBadge}
+                      style={{ background: rol.bg, color: rol.color }}
+                    >
+                      {rol.label}
+                    </span>
+                  </div>
+                  <span className={styles.arrow}>›</span>
+                </button>
+              )
+            })}
           </div>
         )}
 
@@ -103,6 +116,24 @@ export default function SeleccionPerfil() {
               autoFocus
               required
             />
+
+            <label className="section-label">Rol</label>
+            <div className={styles.rolSelector}>
+              {Object.entries(ROLES).map(([key, rol]) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={styles.rolChip}
+                  style={nuevoRol === key
+                    ? { background: rol.color, borderColor: rol.color, color: '#fff', fontWeight: 700 }
+                    : {}}
+                  onClick={() => setNuevoRol(key)}
+                >
+                  {rol.emoji} {rol.label}
+                </button>
+              ))}
+            </div>
+
             <button
               type="submit"
               className={`btn-primary ${styles.btnGuardar}`}
@@ -113,14 +144,14 @@ export default function SeleccionPerfil() {
             <button
               type="button"
               className="btn-outline"
-              onClick={() => { setMostrando(false); setNuevoNombre('') }}
+              onClick={() => { setMostrando(false); setNuevoNombre(''); setNuevoRol('admin_pedidos') }}
             >
               Cancelar
             </button>
           </form>
         ) : (
           <button className={styles.btnAgregar} onClick={() => setMostrando(true)}>
-            + Agregar administrador
+            + Agregar perfil
           </button>
         )}
 

@@ -13,30 +13,17 @@
   top: 56px;
   z-index: 10;
 }
-
 .tab {
-  flex: 1;
-  padding: 14px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--muted);
-  border-bottom: 3px solid transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
+  flex: 1; padding: 14px; font-size: 14px; font-weight: 600;
+  color: var(--muted); border-bottom: 3px solid transparent;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
   transition: color 0.15s, border-color 0.15s;
 }
-.tab:hover  { color: var(--primary); }
+.tab:hover { color: var(--primary); }
 .tabActive  { color: var(--primary); border-bottom-color: var(--primary); }
-
 .tabBadge {
-  background: var(--accent);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 800;
-  border-radius: 10px;
-  padding: 1px 7px;
+  background: var(--accent); color: #fff; font-size: 11px;
+  font-weight: 800; border-radius: 10px; padding: 1px 7px;
 }
 
 /* ── Lista ── */
@@ -47,50 +34,89 @@
   gap: 12px;
 }
 
-/* ── Card de pedido ── */
+/* ── Card ── */
 .card {
-  background: var(--card);
-  border-radius: var(--radius-lg);
-  padding: 16px;
-  box-shadow: var(--shadow);
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+  background: var(--card); border-radius: var(--radius-lg);
+  padding: 16px; box-shadow: var(--shadow);
+  display: flex; flex-direction: column; gap: 5px;
 }
-
 .cardHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 2px;
+  display: flex; align-items: center;
+  justify-content: space-between; margin-bottom: 2px;
 }
-
-.numero {
-  font-size: 17px;
-  font-weight: 800;
-  color: var(--primary);
-  letter-spacing: -0.3px;
-}
-
-/* Badges de estado */
-.badge {
-  font-size: 12px;
-  font-weight: 700;
-  border-radius: 20px;
-  padding: 3px 10px;
-}
-.badgePendiente  { background: #eef2ff; color: #4338ca; }
-.badgeProceso    { background: #fef3c7; color: var(--warning); }
-.badgeCerrado    { background: #d1fae5; color: var(--success); }
-
+.numero   { font-size: 17px; font-weight: 800; color: var(--primary); letter-spacing: -0.3px; }
 .cliente  { font-size: 14px; font-weight: 600; color: var(--primary); }
 .notas    { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bodeguero{ font-size: 13px; color: var(--muted); }
 .tiempo   { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
+/* Badges de estado */
+.badge { font-size: 12px; font-weight: 700; border-radius: 20px; padding: 3px 10px; }
+.badgePendiente  { background: #eef2ff; color: #4338ca; }
+.badgeProceso    { background: #fef3c7; color: var(--warning); }
+.badgeCerrado    { background: #d1fae5; color: var(--success); }
+.badgeLg { font-size: 14px; padding: 5px 14px; align-self: flex-start; }
+
+/* ── Botón Ver pedido ── */
+.btnVer {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  padding: 9px 12px; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 10px; font-size: 13px; font-weight: 600; color: var(--primary);
+  transition: background 0.15s, border-color 0.15s; margin-top: 4px;
+}
+.btnVer:hover { background: #e8e8e0; border-color: var(--primary); }
+.btnVerArrow  { margin-left: auto; font-size: 18px; color: var(--muted); }
+
+/* ── Modal detalle ── */
+.detalleBody { display: flex; flex-direction: column; gap: 14px; }
+
+.detalleEstadoRow { display: flex; }
+
+.detalleGrid { display: flex; flex-direction: column; gap: 2px; }
+
+.filaDetalle {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 0; border-bottom: 1px solid var(--border);
+}
+.filaLabel { font-size: 13px; color: var(--muted); }
+.filaValor { font-size: 13px; color: var(--primary); font-weight: 600; text-align: right; flex: 1; margin-left: 16px; }
+
+.detalleDivider { height: 1px; background: var(--border); margin: 4px 0; }
+
+.notasBox {
+  background: #fffbeb; border-radius: 10px; padding: 12px;
+  border-left: 4px solid #f59e0b;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.notasLabel { font-size: 11px; font-weight: 700; color: #92400e; }
+.notasTexto { font-size: 13px; color: #78350f; line-height: 1.5; }
+
+/* ── Ítems ── */
+.itemsSection { display: flex; flex-direction: column; gap: 8px; }
+.itemsTitulo  {
+  font-size: 12px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.8px;
+}
+.itemsVacio { font-size: 13px; color: var(--muted); font-style: italic; padding: 4px 0; }
+.itemsLista { display: flex; flex-direction: column; gap: 6px; }
+
+.itemRow {
+  display: flex; align-items: center; gap: 10px;
+  border-radius: 10px; padding: 10px 12px;
+}
+.itemOk   { background: #f0fdf4; }
+.itemPend { background: #f9fafb; border: 1px solid var(--border); }
+
+.itemIcono  { font-size: 18px; flex-shrink: 0; }
+.itemInfo   { flex: 1; display: flex; flex-direction: column; gap: 1px; }
+.itemNombre { font-size: 13px; font-weight: 600; color: var(--primary); }
+.itemCodigo { font-size: 11px; color: var(--muted); font-family: monospace; }
+
+.itemCants      { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0; }
+.itemCantPedida { font-size: 15px; font-weight: 700; color: var(--primary); }
+.itemCantDesp   { font-size: 10px; color: var(--muted); }
+
 .errorMsg {
-  color: var(--danger);
-  text-align: center;
-  padding: 24px 20px;
-  font-size: 14px;
+  color: var(--danger); text-align: center;
+  padding: 24px 20px; font-size: 14px;
 }

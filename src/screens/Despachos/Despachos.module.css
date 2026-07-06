@@ -1,0 +1,150 @@
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px 20px 40px;
+}
+
+/* ── Dos columnas (apiladas en pantallas chicas) ── */
+.columnas {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  align-items: start;
+}
+@media (min-width: 860px) {
+  .columnas { grid-template-columns: 1fr 1fr; }
+}
+
+.columna {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.025);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  min-height: 200px;
+}
+
+.columnaHeader {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 14px; font-weight: 800;
+  padding: 4px 2px 8px;
+  border-bottom: 2px solid var(--border);
+}
+.headerPend   { color: #b45309; border-bottom-color: #fcd34d; }
+.headerBodega { color: #047857; border-bottom-color: #6ee7b7; }
+.columnaCount {
+  margin-left: auto;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 1px 10px;
+  font-size: 13px; font-weight: 800; color: var(--primary);
+}
+
+.columnaVacia {
+  text-align: center; padding: 36px 12px;
+  color: var(--muted); font-size: 13px;
+  display: flex; flex-direction: column; gap: 8px; align-items: center;
+}
+.vaciaEmoji { font-size: 34px; }
+
+/* ── Filtros ── */
+.filtros {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 12px; margin-bottom: 14px;
+}
+.filtroLabel {
+  display: flex; flex-direction: column; gap: 4px;
+  font-size: 12px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.fechaInput {
+  border: 1.5px solid var(--border); border-radius: 10px;
+  padding: 9px 12px; font-size: 14px; color: var(--primary); background: var(--card);
+}
+.btnActualizar {
+  background: var(--primary); color: #fff; border-radius: 10px;
+  padding: 11px 16px; font-size: 13px; font-weight: 700; flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+.btnActualizar:hover    { opacity: 0.9; }
+.btnActualizar:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.contador {
+  font-size: 12px; color: var(--muted); font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.6px; padding: 2px 0 10px;
+}
+
+/* ── Lista / cards ── */
+.lista { display: flex; flex-direction: column; gap: 12px; }
+.card {
+  background: var(--card); border-radius: var(--radius-lg);
+  padding: 16px; box-shadow: var(--shadow);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.cardHeader { display: flex; align-items: center; justify-content: space-between; }
+.numero  { font-size: 16px; font-weight: 800; color: var(--primary); }
+.cliente { font-size: 14px; font-weight: 600; color: var(--primary); }
+.fecha   { font-size: 12px; color: var(--muted); }
+
+/* Pills de estado */
+.pill { font-size: 11px; font-weight: 800; border-radius: 20px; padding: 3px 10px; }
+.pillNone     { background: #eef2ff; color: #4338ca; }
+.pillPartial  { background: #fef3c7; color: #b45309; }
+.pillComplete { background: #d1fae5; color: #047857; }
+.badgeCola    { background: #eef2ff; color: #4338ca; }
+.badgeProceso { background: #fef3c7; color: #b45309; }
+
+/* Card de la columna bodega */
+.cardBodega { border-left: 4px solid var(--success); }
+.bodeguero  { font-size: 13px; color: var(--muted); }
+.laudusRef  { font-size: 12px; color: var(--muted); font-family: monospace; }
+
+/* Chips de documentos */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0; }
+.chip {
+  font-size: 11px; font-weight: 700; color: var(--primary);
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 2px 8px;
+}
+
+/* Progreso */
+.progressTrack { height: 6px; background: var(--border); border-radius: 4px; overflow: hidden; margin-top: 4px; }
+.progressFill  { height: 6px; background: var(--success); border-radius: 4px; transition: width 0.3s; }
+.resumen { font-size: 12px; color: var(--muted); }
+
+/* Acciones */
+.acciones { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px; }
+.btnVer {
+  font-size: 13px; font-weight: 600; color: var(--primary);
+  padding: 8px 0;
+}
+.btnVer:hover { text-decoration: underline; }
+.btnEnviar {
+  background: var(--accent); color: #fff; border-radius: 10px;
+  padding: 10px 16px; font-size: 13px; font-weight: 700;
+  transition: opacity 0.15s;
+}
+.btnEnviar:hover    { opacity: 0.9; }
+.btnEnviar:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* ── Modal detalle ── */
+.detalleBody { display: flex; flex-direction: column; gap: 14px; }
+.detalleInfo { display: flex; flex-direction: column; gap: 8px; }
+.detalleCliente { font-size: 15px; font-weight: 700; color: var(--primary); }
+
+.tablaSec { display: flex; flex-direction: column; gap: 6px; }
+.tablaTitulo { font-size: 13px; font-weight: 800; margin: 4px 0; }
+.tituloPend { color: #b91c1c; }
+.tituloOk   { color: #047857; }
+
+.linea {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; border-radius: 10px; padding: 10px 12px;
+}
+.lineaPend { background: #fef2f2; border: 1px solid #fecaca; }
+.lineaOk   { background: #f0fdf4; border: 1px solid #bbf7d0; }
+.lineaInfo { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.lineaNombre { font-size: 13px; font-weight: 600; color: var(--primary); }
+.lineaSku    { font-size: 11px; color: var(--muted); font-family: monospace; }
+.lineaQty    { font-size: 15px; font-weight: 800; color: var(--primary); flex-shrink: 0; }

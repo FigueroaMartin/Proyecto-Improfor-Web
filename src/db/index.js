@@ -11,6 +11,7 @@ const normalizeProducto = (row) => ({
   categoria: row.categoria  || 'General',
   ubicacion: row.ubicacion  || '',
   imagenes:  JSON.stringify(row.imagenes || []),
+  descontinuado: row.descontinuado === true,
 })
 
 const normalizePedido = (row) => ({
@@ -25,6 +26,8 @@ const normalizePedido = (row) => ({
   creado_en:        row.created_at,
   tomado_en:        row.tomado_en,
   cerrado_en:       row.cerrado_en,
+  laudus_order_id:  row.laudus_order_id ?? null,
+  carrier:          row.carrier ?? null,
 })
 
 const normalizeItem = (row) => ({
@@ -40,60 +43,31 @@ const normalizeItem = (row) => ({
 
 // ─── Productos ────────────────────────────────────────────────────────────────
 
-export const getProductos = async () => {
-  const { data, error } = await supabase
+// Lista acotada con búsqueda server-side. Con ~15k productos NO se puede traer
+// todo (el payload satura la conexión). Por eso siempre va con .limit().
+export const getProductos = async (q = '', limit = 100, incluirDescontinuados = false, soloConStock = false) => {
+  let query = supabase
     .from('productos')
-    .select('*')
+    .select('id, codigo, nombre, stock, categoria, ubicacion, imagenes, descontinuado')
     .order('nombre', { ascending: true })
+    .limit(limit)
+  if (!incluirDescontinuados) query = query.eq('descontinuado', false)
+  if (soloConStock) query = query.gt('stock', 0)
+  const t = (q || '').trim().replace(/[,()%]/g, ' ').trim()
+  if (t) query = query.or(`nombre.ilike.%${t}%,codigo.ilike.%${t}%`)
+  const { data, error } = await query
   if (error) throw new Error(error.message)
   return (data || []).map(normalizeProducto)
 }
 
-export const getProductoByCodigo = async (codigo) => {
-  const { data, error } = await supabase
-    .from('productos')
-    .select('*')
-    .eq('codigo', codigo)
-    .maybeSingle()
+// Total de productos (consulta liviana, solo el conteo). Por defecto solo activos.
+export const contarProductos = async (incluirDescontinuados = false, soloConStock = false) => {
+  let query = supabase.from('productos').select('*', { count: 'exact', head: true })
+  if (!incluirDescontinuados) query = query.eq('descontinuado', false)
+  if (soloConStock) query = query.gt('stock', 0)
+  const { count, error } = await query
   if (error) return null
-  return data ? normalizeProducto(data) : null
-}
-
-export const insertProducto = async (producto) => {
-  const imgs = (() => {
-    try { return JSON.parse(producto.imagenes || '[]') }
-    catch { return [] }
-  })()
-  const { error } = await supabase.from('productos').insert({
-    codigo:    producto.codigo.trim(),
-    nombre:    producto.nombre.trim(),
-    stock:     parseInt(producto.stock) || 0,
-    categoria: producto.categoria || 'General',
-    ubicacion: producto.ubicacion || '',
-    imagenes:  imgs,
-  })
-  if (error) throw new Error(error.message)
-}
-
-export const updateProducto = async (id, cambios) => {
-  const { error } = await supabase
-    .from('productos')
-    .update(cambios)
-    .eq('id', id)
-  if (error) throw new Error(error.message)
-}
-
-export const deleteProducto = async (id) => {
-  const { error } = await supabase.from('productos').delete().eq('id', id)
-  if (error) throw new Error(error.message)
-}
-
-export const updateStock = async (id, nuevoStock) => {
-  const { error } = await supabase
-    .from('productos')
-    .update({ stock: parseInt(nuevoStock) || 0 })
-    .eq('id', id)
-  if (error) throw new Error(error.message)
+  return count ?? 0
 }
 
 // ─── Bodegueros ───────────────────────────────────────────────────────────────
@@ -110,7 +84,7 @@ export const getBodegueros = async () => {
 export const insertBodeguero = async (bodeguero) => {
   const { error } = await supabase
     .from('bodegueros')
-    .insert({ nombre: bodeguero.nombre.trim(), rol: bodeguero.rol || 'administrador' })
+    .insert({ nombre: bodeguero.nombre.trim(), rol: bodeguero.rol || 'admin_pedidos' })
   if (error) throw new Error(error.message)
 }
 

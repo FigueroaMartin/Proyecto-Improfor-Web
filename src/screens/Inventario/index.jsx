@@ -1,34 +1,50 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
-import { getProductos, updateProducto, deleteProducto } from '../../db'
+import { getProductos, contarProductos } from '../../db'
 import Header  from '../../components/Header'
 import Spinner from '../../components/Spinner'
 import Modal   from '../../components/Modal'
 import styles  from './Inventario.module.css'
 
-const CATEGORIAS = ['General', 'Electrónica', 'Alimentos', 'Ropa', 'Herramientas', 'Otros']
+const parseImagenes = (str) => {
+  try { return JSON.parse(str || '[]') } catch { return [] }
+}
+
+// Con ~15k productos NO se traen todos: se carga una página acotada y la
+// búsqueda se resuelve en el servidor.
+const PAGE_SIZE = 100
 
 export default function Inventario() {
-  const navigate = useNavigate()
-
   const [productos,  setProductos]  = useState([])
+  const [total,      setTotal]      = useState(null)
   const [cargando,   setCargando]   = useState(true)
   const [busqueda,   setBusqueda]   = useState('')
-  const [editando,   setEditando]   = useState(null)   // producto a editar
-  const [guardando,  setGuardando]  = useState(false)
   const [error,      setError]      = useState('')
 
-  // Campos del modal de edición
-  const [editNombre,    setEditNombre]    = useState('')
-  const [editStock,     setEditStock]     = useState('')
-  const [editCategoria, setEditCategoria] = useState('General')
-  const [editUbicacion, setEditUbicacion] = useState('')
+  // Sincronización con Laudus
+  const [sincronizando, setSincronizando] = useState(false)
+  const [syncMsg,       setSyncMsg]        = useState('')
+  const [lastSync,      setLastSync]       = useState(() => localStorage.getItem('laudus_last_sync') || '')
 
-  const cargar = useCallback(async () => {
+  // Mostrar descontinuados (por defecto ocultos)
+  const [verDescontinuados, setVerDescontinuados] = useState(false)
+  // Ocultar productos sin stock (por defecto visible)
+  const [soloConStock, setSoloConStock] = useState(false)
+
+  // Modal detalle (solo lectura)
+  const [detalle,    setDetalle]    = useState(null)
+  const [imagenFull, setImagenFull] = useState(null)
+
+  const busquedaRef   = useRef('')    // query actual (para usar en realtime)
+  const verRef        = useRef(false) // verDescontinuados actual (para realtime)
+  const stockRef      = useRef(false) // soloConStock actual (para realtime)
+  const searchTimer   = useRef(null)  // debounce del buscador
+
+  const cargar = useCallback(async (q = '', incluir = false, conStock = false) => {
     try {
-      const data = await getProductos()
+      const data = await getProductos(q, PAGE_SIZE, incluir, conStock)
       setProductos(data)
+      setError('')
     } catch (e) {
       setError(e.message)
     } finally {
@@ -36,67 +52,89 @@ export default function Inventario() {
     }
   }, [])
 
-  useEffect(() => {
-    cargar()
+  const refrescarTotal = useCallback(async (incluir = false, conStock = false) => {
+    const n = await contarProductos(incluir, conStock)
+    if (n != null) setTotal(n)
+  }, [])
 
-    // Realtime: se actualiza cuando la app móvil cambia un producto
+  useEffect(() => {
+    cargar('', false)
+    refrescarTotal(false)
+    // Debounce: una sincronización masiva emite miles de eventos; los colapsamos
+    // en una sola recarga 1,5s después del último cambio.
+    let t
     const channel = supabase
       .channel('inventario-web')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'productos' },
-        () => cargar()
+        () => {
+          clearTimeout(t)
+          t = setTimeout(() => {
+            cargar(busquedaRef.current, verRef.current, stockRef.current)
+            refrescarTotal(verRef.current, stockRef.current)
+          }, 1500)
+        }
       )
       .subscribe()
+    return () => { clearTimeout(t); supabase.removeChannel(channel) }
+  }, [cargar, refrescarTotal])
 
-    return () => supabase.removeChannel(channel)
-  }, [cargar])
-
-  // ── Filtrar en tiempo real ──
-  const filtrados = productos.filter(p => {
-    const q = busqueda.toLowerCase()
-    return (
-      p.nombre.toLowerCase().includes(q) ||
-      p.codigo.toLowerCase().includes(q)
-    )
-  })
-
-  // ── Abrir modal de edición ──
-  const abrirEditar = (p) => {
-    setEditando(p)
-    setEditNombre(p.nombre)
-    setEditStock(String(p.stock))
-    setEditCategoria(p.categoria)
-    setEditUbicacion(p.ubicacion || '')
-    setError('')
+  // ── Buscador (debounce + consulta al servidor) ──
+  const onBuscar = (val) => {
+    setBusqueda(val)
+    busquedaRef.current = val
+    clearTimeout(searchTimer.current)
+    setCargando(true)
+    searchTimer.current = setTimeout(() => cargar(val, verRef.current, stockRef.current), 350)
   }
 
-  // ── Guardar edición ──
-  const guardarEdicion = async (e) => {
-    e.preventDefault()
-    if (!editNombre.trim()) { setError('El nombre es requerido.'); return }
-    setGuardando(true)
+  // ── Toggle ver descontinuados ──
+  const toggleDescontinuados = () => {
+    const next = !verDescontinuados
+    setVerDescontinuados(next)
+    verRef.current = next
+    setCargando(true)
+    cargar(busquedaRef.current, next, stockRef.current)
+    refrescarTotal(next, stockRef.current)
+  }
+
+  // ── Toggle ocultar sin stock ──
+  const toggleSoloConStock = () => {
+    const next = !soloConStock
+    setSoloConStock(next)
+    stockRef.current = next
+    setCargando(true)
+    cargar(busquedaRef.current, verRef.current, next)
+    refrescarTotal(verRef.current, next)
+  }
+
+  // ── Sincronizar inventario desde Laudus ──
+  const sincronizar = async () => {
+    setSincronizando(true)
+    setSyncMsg('')
     try {
-      await updateProducto(editando.id, {
-        nombre:    editNombre.trim(),
-        stock:     parseInt(editStock) || 0,
-        categoria: editCategoria,
-        ubicacion: editUbicacion.trim(),
-      })
-      setEditando(null)
-      await cargar()
+      const { data, error } = await supabase.functions.invoke('sync-laudus-inventory')
+      if (error) throw error
+      if (!data?.ok) throw new Error(data?.error || 'Error desconocido en la sincronización')
+      localStorage.setItem('laudus_last_sync', data.syncedAt)
+      setLastSync(data.syncedAt)
+      setSyncMsg(`✅ ${data.upserted} producto${data.upserted !== 1 ? 's' : ''} sincronizado${data.upserted !== 1 ? 's' : ''} desde Laudus`)
+      await cargar(busquedaRef.current, verRef.current, stockRef.current)
+      await refrescarTotal(verRef.current, stockRef.current)
     } catch (e) {
-      setError(e.message)
+      setSyncMsg('⚠️ ' + (e.message || String(e)))
     } finally {
-      setGuardando(false)
+      setSincronizando(false)
     }
   }
 
-  // ── Eliminar ──
-  const eliminar = (p) => {
-    if (!window.confirm(`¿Eliminar "${p.nombre}"? Esta acción no se puede deshacer.`)) return
-    deleteProducto(p.id)
-      .then(cargar)
-      .catch(e => setError(e.message))
+  const fmtSync = (iso) => {
+    if (!iso) return null
+    const d = new Date(iso)
+    const pad = n => String(n).padStart(2, '0')
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`
   }
+
+  const hayMas = productos.length >= PAGE_SIZE
 
   return (
     <div className="page">
@@ -104,126 +142,204 @@ export default function Inventario() {
 
       <div className={`container ${styles.content}`}>
 
+        {/* ── Barra de sincronización con Laudus ── */}
+        <div className={styles.syncBar}>
+          <div className={styles.syncInfo}>
+            <span className={styles.syncLabel}>
+              Inventario · Laudus ERP{total != null ? ` · ${total.toLocaleString('es-CL')} productos` : ''}
+            </span>
+            <span className={styles.syncDate}>
+              {lastSync ? `Última sync: ${fmtSync(lastSync)}` : 'Sin sincronizar todavía'}
+            </span>
+          </div>
+          <button className={styles.btnSync} onClick={sincronizar} disabled={sincronizando}>
+            {sincronizando ? '⏳ Sincronizando…' : '↻ Sincronizar'}
+          </button>
+        </div>
+        {syncMsg && <p className={styles.syncMsg}>{syncMsg}</p>}
+
         {/* ── Buscador ── */}
         <div className={styles.searchBox}>
           <span className={styles.searchIcon}>🔍</span>
           <input
             className={styles.searchInput}
             value={busqueda}
-            onChange={e => setBusqueda(e.target.value)}
+            onChange={e => onBuscar(e.target.value)}
             placeholder="Buscar por nombre o código..."
           />
           {busqueda && (
-            <button className={styles.clearBtn} onClick={() => setBusqueda('')}>✕</button>
+            <button className={styles.clearBtn} onClick={() => onBuscar('')}>✕</button>
           )}
         </div>
 
-        {/* ── Botón agregar ── */}
-        <button
-          className={styles.btnAgregar}
-          onClick={() => navigate('/agregar-producto')}
-        >
-          ➕  Agregar producto
-        </button>
+        {/* ── Toggles de filtro ── */}
+        <div className={styles.toggleRow}>
+          <label className={styles.toggleDesc}>
+            <input
+              type="checkbox"
+              checked={soloConStock}
+              onChange={toggleSoloConStock}
+            />
+            <span>Solo con stock</span>
+          </label>
+          <label className={styles.toggleDesc}>
+            <input
+              type="checkbox"
+              checked={verDescontinuados}
+              onChange={toggleDescontinuados}
+            />
+            <span>Ver descontinuados</span>
+          </label>
+        </div>
 
         {/* ── Lista ── */}
         {cargando ? (
           <Spinner />
-        ) : filtrados.length === 0 ? (
+        ) : error ? (
+          <div className="empty-state">
+            <div className="emoji">⚠️</div>
+            <p>{error}</p>
+          </div>
+        ) : productos.length === 0 ? (
           <div className="empty-state">
             <div className="emoji">{busqueda ? '🔍' : '📦'}</div>
             <p>{busqueda ? `Sin resultados para "${busqueda}"` : 'No hay productos en el inventario'}</p>
+            {!busqueda && (
+              <p className={styles.emptyHint}>Los productos se sincronizan desde Laudus ERP</p>
+            )}
           </div>
         ) : (
           <div className={styles.lista}>
-            <p className={styles.contador}>{filtrados.length} producto{filtrados.length !== 1 ? 's' : ''}</p>
-            {filtrados.map(p => (
-              <div key={p.id} className={styles.card}>
-                <div className={styles.cardTop}>
-                  <div className={styles.cardInfo}>
-                    <span className={styles.cardNombre}>{p.nombre}</span>
-                    <span className={styles.cardCodigo}>{p.codigo}</span>
+            <p className={styles.contador}>
+              {busqueda
+                ? `${productos.length}${hayMas ? '+' : ''} resultado${productos.length !== 1 ? 's' : ''}${hayMas ? ' · afiná la búsqueda' : ''}`
+                : `Mostrando ${productos.length}${total != null ? ` de ${total.toLocaleString('es-CL')}` : ''} · usá el buscador`}
+            </p>
+            {productos.map(p => {
+              const imgs = parseImagenes(p.imagenes)
+              return (
+                <div key={p.id} className={`${styles.card} ${p.descontinuado ? styles.cardDesc : ''}`}>
+                  <div className={styles.cardTop}>
+                    <div className={styles.cardInfo}>
+                      <span className={styles.cardNombre}>{p.nombre}</span>
+                      <span className={styles.cardCodigo}>{p.codigo}</span>
+                    </div>
+                    {p.descontinuado && (
+                      <span className={styles.badgeDesc}>Descontinuado</span>
+                    )}
                   </div>
-                  <div className={styles.cardAcciones}>
-                    <button className={styles.btnEdit} onClick={() => abrirEditar(p)} title="Editar">✏️</button>
-                    <button className={styles.btnDel}  onClick={() => eliminar(p)}   title="Eliminar">🗑️</button>
+
+                  <div className={styles.cardMiddle}>
+                    <span className={styles.categoria}>{p.categoria}</span>
+                    <div className={styles.stockRow}>
+                      <span className={styles.stockNum}>{p.stock}</span>
+                      <span className={styles.stockLabel}>uds</span>
+                    </div>
                   </div>
+
+                  {p.ubicacion && (
+                    <span className={styles.ubicacion}>📍 {p.ubicacion}</span>
+                  )}
+
+                  {/* ── Botón Ver producto ── */}
+                  <button
+                    className={styles.btnVer}
+                    onClick={() => setDetalle(p)}
+                  >
+                    <span>Ver producto</span>
+                    <span className={styles.btnVerArrow}>›</span>
+                    {imgs.length > 0 && (
+                      <span className={styles.btnVerFotos}>🖼️ {imgs.length}</span>
+                    )}
+                  </button>
                 </div>
-                <div className={styles.cardBottom}>
-                  <span className={styles.categoria}>{p.categoria}</span>
-                  <div className={styles.stockRow}>
-                    <span className={styles.stockNum}>{p.stock}</span>
-                    <span className={styles.stockLabel}>uds</span>
-                  </div>
-                </div>
-                {p.ubicacion ? (
-                  <span className={styles.ubicacion}>📍 {p.ubicacion}</span>
-                ) : null}
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
 
-      {/* ── Modal de edición ── */}
+      {/* ══════════════════════════════════════════════
+          MODAL DETALLE PRODUCTO (solo lectura)
+      ══════════════════════════════════════════════ */}
       <Modal
-        isOpen={!!editando}
-        onClose={() => setEditando(null)}
-        title="Editar producto"
+        isOpen={!!detalle}
+        onClose={() => setDetalle(null)}
+        title="Detalle del producto"
       >
-        <form onSubmit={guardarEdicion} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <label className="section-label">Nombre *</label>
-          <input
-            className="input"
-            value={editNombre}
-            onChange={e => setEditNombre(e.target.value)}
-            required
-          />
+        {detalle && (() => {
+          const imgs = parseImagenes(detalle.imagenes)
+          return (
+            <div className={styles.detalleBody}>
+              {/* Nombre + código */}
+              <div className={styles.detalleHeader}>
+                <div>
+                  <h2 className={styles.detalleNombre}>{detalle.nombre}</h2>
+                  <span className={styles.detalleCodigo}>{detalle.codigo}</span>
+                  {detalle.descontinuado && (
+                    <span className={styles.badgeDesc} style={{ marginTop: 6, display: 'inline-block' }}>Descontinuado</span>
+                  )}
+                </div>
+                <div className={styles.detalleStockBadge}>
+                  <span className={styles.detalleStockNum}>{detalle.stock}</span>
+                  <span className={styles.detalleStockLbl}>uds</span>
+                </div>
+              </div>
 
-          <label className="section-label">Stock</label>
-          <input
-            className="input"
-            type="number"
-            min="0"
-            value={editStock}
-            onChange={e => setEditStock(e.target.value)}
-          />
+              {/* Categoría */}
+              <div className={styles.detalleRow}>
+                <span className={styles.detalleLabel}>Categoría</span>
+                <span className={styles.detalleCat}>{detalle.categoria}</span>
+              </div>
 
-          <label className="section-label">Categoría</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {CATEGORIAS.map(cat => (
-              <button
-                key={cat}
-                type="button"
-                className={styles.pill}
-                style={editCategoria === cat ? { background: 'var(--primary)', color: '#fff', borderColor: 'var(--primary)', fontWeight: 700 } : {}}
-                onClick={() => setEditCategoria(cat)}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
+              {/* Ubicación */}
+              {detalle.ubicacion ? (
+                <div className={styles.detalleUbicBox}>
+                  <span className={styles.detalleUbicLabel}>📍 Ubicación en bodega</span>
+                  <span className={styles.detalleUbicTexto}>{detalle.ubicacion}</span>
+                </div>
+              ) : (
+                <p className={styles.detalleSinUbic}>Sin ubicación registrada</p>
+              )}
 
-          <label className="section-label">Ubicación en bodega</label>
-          <textarea
-            className="input"
-            value={editUbicacion}
-            onChange={e => setEditUbicacion(e.target.value)}
-            placeholder="Ej: Pasillo 3, estante B"
-            rows={2}
-            style={{ resize: 'vertical' }}
-          />
+              {/* Imágenes */}
+              {imgs.length > 0 && (
+                <div className={styles.detalleImgsBox}>
+                  <span className={styles.detalleImgsLabel}>🖼️ Imágenes de referencia ({imgs.length})</span>
+                  <div className={styles.detalleImgsScroll}>
+                    {imgs.map((uri, i) => (
+                      <img
+                        key={i}
+                        src={uri}
+                        alt={`Referencia ${i + 1}`}
+                        className={styles.detalleThumb}
+                        onClick={() => setImagenFull(uri)}
+                        title="Click para ampliar"
+                      />
+                    ))}
+                  </div>
+                  <span className={styles.detalleImgsHint}>Haz clic en una imagen para ampliarla</span>
+                </div>
+              )}
 
-          {error && <p style={{ color: 'var(--danger)', fontSize: 13 }}>⚠️ {error}</p>}
-
-          <button type="submit" className="btn-primary" disabled={guardando} style={{ marginTop: 4 }}>
-            {guardando ? 'Guardando...' : '💾  Guardar cambios'}
-          </button>
-          <button type="button" className="btn-outline" onClick={() => setEditando(null)}>
-            Cancelar
-          </button>
-        </form>
+              {/* Cerrar */}
+              <div className={styles.detalleAcciones}>
+                <button className="btn-outline" onClick={() => setDetalle(null)}>
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          )
+        })()}
       </Modal>
+
+      {/* ── Imagen a pantalla completa ── */}
+      {imagenFull && (
+        <div className={styles.imagenFullOverlay} onClick={() => setImagenFull(null)}>
+          <button className={styles.imagenFullCerrar} onClick={() => setImagenFull(null)}>✕</button>
+          <img src={imagenFull} alt="Referencia" className={styles.imagenFullImg} />
+        </div>
+      )}
     </div>
   )
 }
