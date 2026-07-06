@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
-import { getProductos, contarProductos } from '../../db'
+import { getProductos, contarProductos, getProveedores } from '../../db'
 import Header  from '../../components/Header'
 import Spinner from '../../components/Spinner'
 import Modal   from '../../components/Modal'
@@ -30,6 +30,9 @@ export default function Inventario() {
   const [verDescontinuados, setVerDescontinuados] = useState(false)
   // Ocultar productos sin stock (por defecto visible)
   const [soloConStock, setSoloConStock] = useState(false)
+  // Filtro por proveedor ('' = todos, '__sin_proveedor__' = sin proveedor asignado)
+  const [proveedor,    setProveedor]    = useState('')
+  const [proveedores,  setProveedores]  = useState([])
 
   // Modal detalle (solo lectura)
   const [detalle,    setDetalle]    = useState(null)
@@ -38,11 +41,12 @@ export default function Inventario() {
   const busquedaRef   = useRef('')    // query actual (para usar en realtime)
   const verRef        = useRef(false) // verDescontinuados actual (para realtime)
   const stockRef      = useRef(false) // soloConStock actual (para realtime)
+  const proveedorRef  = useRef('')    // proveedor actual (para realtime)
   const searchTimer   = useRef(null)  // debounce del buscador
 
-  const cargar = useCallback(async (q = '', incluir = false, conStock = false) => {
+  const cargar = useCallback(async (q = '', incluir = false, conStock = false, prov = '') => {
     try {
-      const data = await getProductos(q, PAGE_SIZE, incluir, conStock)
+      const data = await getProductos(q, PAGE_SIZE, incluir, conStock, prov)
       setProductos(data)
       setError('')
     } catch (e) {
@@ -52,14 +56,19 @@ export default function Inventario() {
     }
   }, [])
 
-  const refrescarTotal = useCallback(async (incluir = false, conStock = false) => {
-    const n = await contarProductos(incluir, conStock)
+  const refrescarTotal = useCallback(async (incluir = false, conStock = false, prov = '') => {
+    const n = await contarProductos(incluir, conStock, prov)
     if (n != null) setTotal(n)
+  }, [])
+
+  const cargarProveedores = useCallback(async (incluir = false, conStock = false) => {
+    try { setProveedores(await getProveedores(incluir, conStock)) } catch { /* deja la lista como estaba */ }
   }, [])
 
   useEffect(() => {
     cargar('', false)
     refrescarTotal(false)
+    cargarProveedores()
     // Debounce: una sincronización masiva emite miles de eventos; los colapsamos
     // en una sola recarga 1,5s después del último cambio.
     let t
@@ -69,14 +78,15 @@ export default function Inventario() {
         () => {
           clearTimeout(t)
           t = setTimeout(() => {
-            cargar(busquedaRef.current, verRef.current, stockRef.current)
-            refrescarTotal(verRef.current, stockRef.current)
+            cargar(busquedaRef.current, verRef.current, stockRef.current, proveedorRef.current)
+            refrescarTotal(verRef.current, stockRef.current, proveedorRef.current)
+            cargarProveedores(verRef.current, stockRef.current)
           }, 1500)
         }
       )
       .subscribe()
     return () => { clearTimeout(t); supabase.removeChannel(channel) }
-  }, [cargar, refrescarTotal])
+  }, [cargar, refrescarTotal, cargarProveedores])
 
   // ── Buscador (debounce + consulta al servidor) ──
   const onBuscar = (val) => {
@@ -84,7 +94,7 @@ export default function Inventario() {
     busquedaRef.current = val
     clearTimeout(searchTimer.current)
     setCargando(true)
-    searchTimer.current = setTimeout(() => cargar(val, verRef.current, stockRef.current), 350)
+    searchTimer.current = setTimeout(() => cargar(val, verRef.current, stockRef.current, proveedorRef.current), 350)
   }
 
   // ── Toggle ver descontinuados ──
@@ -93,8 +103,9 @@ export default function Inventario() {
     setVerDescontinuados(next)
     verRef.current = next
     setCargando(true)
-    cargar(busquedaRef.current, next, stockRef.current)
-    refrescarTotal(next, stockRef.current)
+    cargar(busquedaRef.current, next, stockRef.current, proveedorRef.current)
+    refrescarTotal(next, stockRef.current, proveedorRef.current)
+    cargarProveedores(next, stockRef.current)
   }
 
   // ── Toggle ocultar sin stock ──
@@ -103,8 +114,18 @@ export default function Inventario() {
     setSoloConStock(next)
     stockRef.current = next
     setCargando(true)
-    cargar(busquedaRef.current, verRef.current, next)
-    refrescarTotal(verRef.current, next)
+    cargar(busquedaRef.current, verRef.current, next, proveedorRef.current)
+    refrescarTotal(verRef.current, next, proveedorRef.current)
+    cargarProveedores(verRef.current, next)
+  }
+
+  // ── Filtro por proveedor ──
+  const onCambiarProveedor = (val) => {
+    setProveedor(val)
+    proveedorRef.current = val
+    setCargando(true)
+    cargar(busquedaRef.current, verRef.current, stockRef.current, val)
+    refrescarTotal(verRef.current, stockRef.current, val)
   }
 
   // ── Sincronizar inventario desde Laudus ──
@@ -118,8 +139,9 @@ export default function Inventario() {
       localStorage.setItem('laudus_last_sync', data.syncedAt)
       setLastSync(data.syncedAt)
       setSyncMsg(`✅ ${data.upserted} producto${data.upserted !== 1 ? 's' : ''} sincronizado${data.upserted !== 1 ? 's' : ''} desde Laudus`)
-      await cargar(busquedaRef.current, verRef.current, stockRef.current)
-      await refrescarTotal(verRef.current, stockRef.current)
+      await cargar(busquedaRef.current, verRef.current, stockRef.current, proveedorRef.current)
+      await refrescarTotal(verRef.current, stockRef.current, proveedorRef.current)
+      await cargarProveedores(verRef.current, stockRef.current)
     } catch (e) {
       setSyncMsg('⚠️ ' + (e.message || String(e)))
     } finally {
@@ -171,6 +193,20 @@ export default function Inventario() {
             <button className={styles.clearBtn} onClick={() => onBuscar('')}>✕</button>
           )}
         </div>
+
+        {/* ── Filtro por proveedor ── */}
+        <select
+          className={styles.proveedorSelect}
+          value={proveedor}
+          onChange={e => onCambiarProveedor(e.target.value)}
+        >
+          <option value="">🏭 Todos los proveedores</option>
+          {proveedores.map(p => (
+            <option key={p.proveedor} value={p.proveedor}>
+              {p.proveedor === '__sin_proveedor__' ? 'Sin proveedor' : p.proveedor} ({p.n})
+            </option>
+          ))}
+        </select>
 
         {/* ── Toggles de filtro ── */}
         <div className={styles.toggleRow}>
@@ -237,6 +273,10 @@ export default function Inventario() {
                     </div>
                   </div>
 
+                  {p.proveedor && (
+                    <span className={styles.proveedorTag}>🏭 {p.proveedor}</span>
+                  )}
+
                   {p.ubicacion && (
                     <span className={styles.ubicacion}>📍 {p.ubicacion}</span>
                   )}
@@ -291,6 +331,14 @@ export default function Inventario() {
                 <span className={styles.detalleLabel}>Categoría</span>
                 <span className={styles.detalleCat}>{detalle.categoria}</span>
               </div>
+
+              {/* Proveedor */}
+              {detalle.proveedor && (
+                <div className={styles.detalleRow}>
+                  <span className={styles.detalleLabel}>Proveedor</span>
+                  <span className={styles.detalleCat}>🏭 {detalle.proveedor}</span>
+                </div>
+              )}
 
               {/* Ubicación */}
               {detalle.ubicacion ? (

@@ -10,6 +10,7 @@ const normalizeProducto = (row) => ({
   stock:     row.stock,
   categoria: row.categoria  || 'General',
   ubicacion: row.ubicacion  || '',
+  proveedor: row.proveedor  || null,
   imagenes:  JSON.stringify(row.imagenes || []),
   descontinuado: row.descontinuado === true,
 })
@@ -45,14 +46,16 @@ const normalizeItem = (row) => ({
 
 // Lista acotada con búsqueda server-side. Con ~15k productos NO se puede traer
 // todo (el payload satura la conexión). Por eso siempre va con .limit().
-export const getProductos = async (q = '', limit = 100, incluirDescontinuados = false, soloConStock = false) => {
+export const getProductos = async (q = '', limit = 100, incluirDescontinuados = false, soloConStock = false, proveedor = '') => {
   let query = supabase
     .from('productos')
-    .select('id, codigo, nombre, stock, categoria, ubicacion, imagenes, descontinuado')
+    .select('id, codigo, nombre, stock, categoria, ubicacion, proveedor, imagenes, descontinuado')
     .order('nombre', { ascending: true })
     .limit(limit)
   if (!incluirDescontinuados) query = query.eq('descontinuado', false)
   if (soloConStock) query = query.gt('stock', 0)
+  if (proveedor === '__sin_proveedor__') query = query.is('proveedor', null)
+  else if (proveedor) query = query.eq('proveedor', proveedor)
   const t = (q || '').trim().replace(/[,()%]/g, ' ').trim()
   if (t) query = query.or(`nombre.ilike.%${t}%,codigo.ilike.%${t}%`)
   const { data, error } = await query
@@ -61,13 +64,39 @@ export const getProductos = async (q = '', limit = 100, incluirDescontinuados = 
 }
 
 // Total de productos (consulta liviana, solo el conteo). Por defecto solo activos.
-export const contarProductos = async (incluirDescontinuados = false, soloConStock = false) => {
+export const contarProductos = async (incluirDescontinuados = false, soloConStock = false, proveedor = '') => {
   let query = supabase.from('productos').select('*', { count: 'exact', head: true })
   if (!incluirDescontinuados) query = query.eq('descontinuado', false)
   if (soloConStock) query = query.gt('stock', 0)
+  if (proveedor === '__sin_proveedor__') query = query.is('proveedor', null)
+  else if (proveedor) query = query.eq('proveedor', proveedor)
   const { count, error } = await query
   if (error) return null
   return count ?? 0
+}
+
+// Lista de proveedores distintos (para el selector de filtro). El conteo por
+// proveedor respeta los mismos toggles activos (descontinuados/stock) para
+// que no quede desalineado con lo que en realidad se ve al elegirlo.
+export const getProveedores = async (incluirDescontinuados = false, soloConStock = false) => {
+  let query = supabase.from('productos').select('proveedor')
+  if (!incluirDescontinuados) query = query.eq('descontinuado', false)
+  if (soloConStock) query = query.gt('stock', 0)
+  const { data, error } = await query
+  if (error) throw new Error(error.message)
+  const conteo = new Map()
+  for (const row of data || []) {
+    const key = row.proveedor || '__sin_proveedor__'
+    conteo.set(key, (conteo.get(key) || 0) + 1)
+  }
+  const lista = [...conteo.entries()]
+    .map(([proveedor, n]) => ({ proveedor, n }))
+    .sort((a, b) => {
+      if (a.proveedor === '__sin_proveedor__') return 1
+      if (b.proveedor === '__sin_proveedor__') return -1
+      return a.proveedor.localeCompare(b.proveedor)
+    })
+  return lista
 }
 
 // ─── Bodegueros ───────────────────────────────────────────────────────────────
