@@ -17,6 +17,20 @@
   --admin:    #C36A1D;
   --spark:    #EBCD34;
 
+  /* Estados semánticos (unifica los verdes/rojos/ámbares/morados/azules
+     repetidos con variaciones entre pantallas — mismo valor visual de
+     antes, solo consolidado en un solo lugar). */
+  --state-ok:         #1e8a44;
+  --state-ok-bg:      #f0fdf4;
+  --state-warn:       #d97706;
+  --state-warn-bg:    #fffbeb;
+  --state-bad:        #d93025;
+  --state-bad-bg:     #fef2f2;
+  --state-info:       #4338CA;
+  --state-info-bg:    #eef2ff;
+  --state-special:    #7c3aed;
+  --state-special-bg: #ede9fe;
+
   --radius:   12px;
   --radius-lg:16px;
   --shadow:   0 2px 8px rgba(0, 0, 0, 0.08);

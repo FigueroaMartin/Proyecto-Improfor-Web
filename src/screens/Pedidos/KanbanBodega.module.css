@@ -9,6 +9,13 @@
 }
 @media (min-width: 1100px) {
   .board { grid-template-columns: repeat(5, 1fr); align-items: start; }
+
+  /* Refuerzo de jerarquía tipográfica solo en desktop: el número de
+     pedido debe destacar más y el resto (sku/tiempo) leerse sin esfuerzo. */
+  .numero  { font-size: 17px; }
+  .cliente { font-size: 15px; }
+  .itemCodigo { font-size: 12px; }
+  .itemNombre { font-size: 14px; }
 }
 
 /* ── Columna ── */
@@ -20,10 +27,10 @@
   padding: 0 0 10px;
   display: flex; flex-direction: column; gap: 10px;
 }
-.colActivos { border-top-color: #4338CA; }
-.colSalida  { border-top-color: #7c3aed; }   /* Salidas de bodega (SV) → morado */
-.colStarken { border-top-color: #1e8a44; }   /* Starken → verde */
-.colTransp  { border-top-color: #d97706; }   /* Transportistas → naranja */
+.colActivos { border-top-color: var(--state-info); }
+.colSalida  { border-top-color: var(--state-special); }   /* Salidas de bodega (SV) → morado */
+.colStarken { border-top-color: var(--state-ok); }        /* Starken → verde */
+.colTransp  { border-top-color: var(--state-warn); }      /* Transportistas → naranja */
 .colRetira  { border-top-color: #1a6bb5; }   /* Cliente retira → azul */
 
 .colHeader {
@@ -59,15 +66,15 @@
   white-space: nowrap; letter-spacing: 0.01em;
 }
 .transpDestino { align-self: flex-start; }   /* previsualización bajo el cliente (activos) */
-.transp_starken        { background: #d1fae5; color: #1e8a44; }   /* verde   */
+.transp_starken        { background: var(--state-ok-bg); color: var(--state-ok); }        /* verde   */
 .transp_transportistas { background: #fef3c7; color: #b45309; }   /* naranja */
 .transp_cliente_retira { background: #e8f1fb; color: #1a6bb5; }   /* azul    */
-.transp_salida_bodega  { background: #ede9fe; color: #7c3aed; }   /* morado  */
+.transp_salida_bodega  { background: var(--state-special-bg); color: var(--state-special); } /* morado  */
 
 /* Aviso de stock actualizado (salida de bodega) */
 .avisoStock {
-  font-size: 12px; font-weight: 700; color: #7c3aed;
-  background: #ede9fe; border-radius: 8px; padding: 6px 10px;
+  font-size: 12px; font-weight: 700; color: var(--state-special);
+  background: var(--state-special-bg); border-radius: 8px; padding: 6px 10px;
   align-self: flex-start;
 }
 
@@ -83,13 +90,13 @@
 }
 .btnVer:hover { background: var(--panel); }
 .btnCerrar {
-  background: #1e8a44; border: none; color: #fff;
+  background: var(--state-ok); border: none; color: #fff;
 }
 .btnCerrar:hover { opacity: 0.9; }
 .btnCerrar:active { transform: scale(0.98); }
 .btnCerrar:disabled { opacity: 0.5; cursor: not-allowed; }
 .btnSeparados {
-  background: #7c3aed; border: none; color: #fff;
+  background: var(--state-special); border: none; color: #fff;
 }
 .btnSeparados:hover { opacity: 0.9; }
 .btnSeparados:active { transform: scale(0.98); }
