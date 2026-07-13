@@ -142,8 +142,9 @@ Deno.serve(async (req) => {
         allLines.push({ sku: it.sku, desc: it.desc, qty: it.qty, effective, pending })
         if (pending > 0) {
           tienePendiente = true
-          const e = porSku.get(it.sku) || { sku: it.sku, desc: it.desc, pendiente: 0, pedidos: new Set<number>() }
+          const e = porSku.get(it.sku) || { sku: it.sku, desc: it.desc, pendiente: 0, totalPedido: 0, pedidos: new Set<number>() }
           e.pendiente += pending
+          e.totalPedido += it.qty
           e.pedidos.add(o.salesOrderId)
           porSku.set(it.sku, e)
         }
@@ -187,6 +188,7 @@ Deno.serve(async (req) => {
       if (faltante > 0) {
         productos.push({
           sku: e.sku, desc: e.desc,
+          totalPedido: e.totalPedido,
           pendiente: e.pendiente, stock, faltante,
           pedidos: e.pedidos.size,
           proveedor: provMap.get(e.sku) || 'Sin proveedor',
