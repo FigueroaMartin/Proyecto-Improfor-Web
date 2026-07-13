@@ -12,13 +12,16 @@ const COLS = [
   { id: 'completo',      label: 'Completos',     emoji: '✅', grupo: null },
 ]
 
-// Documentos de despacho
+// Documentos de despacho (elegibles al pasar a "Completos")
 const DOCS = [
   { id: 'guia',    label: 'Guía de despacho', emoji: '📄' },
   { id: 'boleta',  label: 'Boleta',           emoji: '🧾' },
   { id: 'factura', label: 'Factura',          emoji: '📑' },
 ]
-const DOC_LABEL = Object.fromEntries(DOCS.map(d => [d.id, d]))
+// "Salida de bodega" (SV) es otro tipo de documento más, propio del flujo de
+// Stock parcial: se usa para separar/reservar productos sin despachar con guía.
+const DOC_SALIDA_BODEGA = { id: 'salida_bodega', label: 'Salida de bodega (SV)', emoji: '📤' }
+const DOC_LABEL = Object.fromEntries([...DOCS, DOC_SALIDA_BODEGA].map(d => [d.id, d]))
 
 // Recomendación de stock (sugerencia — no decide la columna)
 const REC = {
@@ -88,6 +91,9 @@ export default function KanbanPedidos() {
   const [docModal, setDocModal] = useState(null)   // { order } | null
   const [docPaso,  setDocPaso]  = useState('doc')  // 'doc' | 'anticipada' | 'listado'
 
+  // Modal ¿se despacha? al pasar a "Stock parcial"
+  const [parcialModal, setParcialModal] = useState(null)   // { order } | null
+
   // Facturas del RUT que NO mueven stock (anticipadas) — se consulta al elegir Factura
   const [factSinStock, setFactSinStock] = useState({ cargando: false, data: null, error: '' })
 
@@ -138,6 +144,7 @@ export default function KanbanPedidos() {
 
   // ── Mover pedido a una columna ────────────────────────────────────────────────
   // Si el destino es "Completos", primero preguntamos el documento de despacho.
+  // Si el destino es "Stock parcial", preguntamos si se despacha sí/no.
   const aplicarMovimiento = (orderId, colId) => {
     if (colId === 'completo') {
       const order = orders.find(o => o.salesOrderId === orderId)
@@ -145,6 +152,12 @@ export default function KanbanPedidos() {
       setDocPaso('doc')
       setFactSinStock({ cargando: false, data: null, error: '' })
       setDocModal({ order })
+      return
+    }
+    if (colId === 'stock_parcial') {
+      const order = orders.find(o => o.salesOrderId === orderId)
+      setDetalle(null)
+      setParcialModal({ order })
       return
     }
     persistir(orderId, { columna: colId, documento: null, factura_anticipada: null })
@@ -159,12 +172,12 @@ export default function KanbanPedidos() {
     )
   }
 
-  // ── Enviar TODA la columna Completos a bodega ────────────────────────────────
+  // ── Enviar TODA una columna (Completos o Stock parcial) a bodega ─────────────
   // Los pedidos no se van del kanban: pasan a modo fantasma (enviado=true).
-  const enviarTodosABodega = async () => {
-    const pendientes = orders.filter(o => o.columna === 'completo' && !o.enviado)
+  const enviarTodosABodega = async (colId) => {
+    const pendientes = orders.filter(o => o.columna === colId && !o.enviado)
     if (!pendientes.length) return
-    if (!window.confirm(`¿Enviar ${pendientes.length} pedido${pendientes.length > 1 ? 's' : ''} completo${pendientes.length > 1 ? 's' : ''} a bodega?`)) return
+    if (!window.confirm(`¿Enviar ${pendientes.length} pedido${pendientes.length > 1 ? 's' : ''} a bodega?`)) return
     setEnviandoTodos(true)
     let ok = 0
     const errs = []
@@ -191,6 +204,20 @@ export default function KanbanPedidos() {
     setDocModal(null)
     setDocPaso('doc')
     setFactSinStock({ cargando: false, data: null, error: '' })
+  }
+
+  // Respuesta al modal ¿se despacha? de "Stock parcial"
+  // Sí → guía de despacho · No → salida de bodega (SV)
+  const responderDespachoParcial = (despachar) => {
+    const orderId = parcialModal?.order?.salesOrderId
+    if (orderId) {
+      persistir(orderId, {
+        columna: 'stock_parcial',
+        documento: despachar ? 'guia' : 'salida_bodega',
+        factura_anticipada: null,
+      })
+    }
+    setParcialModal(null)
   }
 
   // Elección de documento en el modal de "Completos"
@@ -288,8 +315,9 @@ export default function KanbanPedidos() {
             {COLS.map(col => {
               const lista    = porCol(col.id).filter(o => mostrarEnviados || !o.enviado)
               const isOver   = dragOver === col.id
-              const pendientesEnvio = col.id === 'completo'
-                ? porCol('completo').filter(o => !o.enviado).length
+              const esColEnviable = col.id === 'completo' || col.id === 'stock_parcial'
+              const pendientesEnvio = esColEnviable
+                ? porCol(col.id).filter(o => !o.enviado).length
                 : 0
               return (
                 <div
@@ -305,12 +333,12 @@ export default function KanbanPedidos() {
                     <span className={styles.colCount}>{lista.length}</span>
                   </div>
 
-                  {/* Botón de envío masivo (toda la columna Completos) */}
-                  {col.id === 'completo' && (
+                  {/* Botón de envío masivo (Completos o Stock parcial) */}
+                  {esColEnviable && (
                     <button
                       className={styles.btnEnviarCol}
                       disabled={enviandoTodos || pendientesEnvio === 0}
-                      onClick={enviarTodosABodega}
+                      onClick={() => enviarTodosABodega(col.id)}
                     >
                       {enviandoTodos
                         ? 'Enviando…'
@@ -350,7 +378,7 @@ export default function KanbanPedidos() {
                           {REC[o.stockStatus]?.emoji} {REC[o.stockStatus]?.label}
                         </span>
                       </div>
-                      {col.id === 'completo' && o.documento && (
+                      {esColEnviable && o.documento && (
                         <div className={styles.docBadge}>
                           {DOC_LABEL[o.documento]?.emoji} {DOC_LABEL[o.documento]?.label}
                           {o.documento === 'factura' && (
@@ -556,6 +584,29 @@ export default function KanbanPedidos() {
             </div>
           )
         })()}
+      </Modal>
+
+      {/* ══ MODAL ¿SE DESPACHA? (al pasar a Stock parcial) ══ */}
+      <Modal
+        isOpen={!!parcialModal}
+        onClose={() => setParcialModal(null)}
+        title={parcialModal ? `Stock parcial · Pedido #${parcialModal.order?.salesOrderId}` : ''}
+      >
+        {parcialModal && (
+          <div className={styles.docModalBody}>
+            <p className={styles.docPregunta}>🟡 Stock parcial · ¿Se despacha este pedido?</p>
+            <div className={styles.docOpciones}>
+              <button className={`${styles.docBtn} ${styles.docBtnSi}`} onClick={() => responderDespachoParcial(true)}>
+                <span className={styles.docBtnEmoji}>📄</span>
+                <span className={styles.docBtnLbl}>Sí, con guía de despacho</span>
+              </button>
+              <button className={`${styles.docBtn} ${styles.docBtnNo}`} onClick={() => responderDespachoParcial(false)}>
+                <span className={styles.docBtnEmoji}>📤</span>
+                <span className={styles.docBtnLbl}>No, salida de bodega (SV)</span>
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   )
