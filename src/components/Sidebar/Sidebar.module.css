@@ -9,7 +9,7 @@
     position: fixed;
     top: 0; left: 0; bottom: 0;
     width: 240px;
-    background: var(--primary);
+    background: var(--brand);
     padding: 20px 14px;
     gap: 14px;
     z-index: 200;
@@ -45,9 +45,9 @@
 .item:hover  { background: rgba(255,255,255,0.1); color: #fff; }
 .itemActive {
   background: #fff;
-  color: var(--primary);
+  color: var(--brand);
 }
-.itemActive:hover { background: #fff; color: var(--primary); }
+.itemActive:hover { background: #fff; color: var(--brand); }
 .itemEmoji { font-size: 17px; line-height: 1; }
 
 .userBox {

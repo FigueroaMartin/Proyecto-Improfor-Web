@@ -19,7 +19,7 @@
 }
 .fechaInput:focus { outline: none; border-color: var(--primary); }
 .btnActualizar {
-  background: var(--primary); color: #fff; border: none;
+  background: var(--brand); color: #fff; border: none;
   border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 700;
   cursor: pointer; transition: opacity 0.15s;
 }
