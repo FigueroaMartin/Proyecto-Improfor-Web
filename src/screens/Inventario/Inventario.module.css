@@ -1,5 +1,11 @@
 .content { padding-top: 16px; }
 
+/* En escritorio el contenedor global (max-width: 680px) queda muy angosto
+   para una grilla de 3 columnas — se amplía solo para esta pantalla. */
+@media (min-width: 900px) {
+  :global(.container).content { max-width: 1400px; }
+}
+
 .emptyHint {
   font-size: 13px; color: var(--muted);
   margin-top: 6px; text-align: center;
