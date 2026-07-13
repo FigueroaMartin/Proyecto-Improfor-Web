@@ -1,15 +1,19 @@
 /* ─── Variables globales ─────────────────────────────────────────────────────── */
+/* Paleta de identidad Improfor (simplificada):
+   Rojo #9B1328 · Naranjo #C36A1D · Dorado #D89A1D · Amarillo brillo #EBCD34
+   Negro #000000 · Blanco #FFFFFF */
 :root {
-  --bg:       #EEEEE8;
-  --primary:  #1a1f3a;
-  --success:  #2d6a4f;
-  --accent:   #E8572A;
-  --warning:  #b45309;
+  --bg:       #FFFFFF;
+  --primary:  #9B1328;
+  --success:  #D89A1D;
+  --accent:   #C36A1D;
+  --warning:  #D89A1D;
   --card:     #ffffff;
-  --muted:    #888888;
-  --border:   #e0e0e0;
-  --danger:   #d32f2f;
-  --admin:    #7c3aed;
+  --muted:    #7A7268;
+  --border:   #e6e1da;
+  --danger:   #9B1328;
+  --admin:    #C36A1D;
+  --spark:    #EBCD34;
 
   --radius:   12px;
   --radius-lg:16px;
@@ -84,7 +88,7 @@ a {
   width: 100%;
   transition: opacity 0.15s;
 }
-.btn-primary:hover { opacity: 0.88; }
+.btn-primary:hover { opacity: 0.88; box-shadow: 0 0 0 3px rgba(235, 205, 52, 0.35); }
 .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .btn-outline {

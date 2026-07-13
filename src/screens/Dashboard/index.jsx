@@ -17,14 +17,14 @@ const CARDS = {
     label: 'Importaciones',
     desc:  'Faltantes de stock para pedidos pendientes → qué importar',
     ruta:  '/importaciones',
-    color: '#0E7490',
+    color: 'var(--success)',
   },
   estado_pedidos: {
     emoji: '📋',
     label: 'Estado de Pedidos',
     desc:  'Kanban de cumplimiento: pendientes, parciales y despachados + KPIs',
     ruta:  '/estado-pedidos',
-    color: '#92400E',
+    color: '#000000',
   },
   inventario: {
     emoji: '📋',
@@ -41,6 +41,10 @@ const CARDS = {
     color: 'var(--accent)',
   },
 }
+
+// Logo animado (video loop) oculto por ahora a pedido del cliente — no se usa,
+// pero se deja el código listo para reactivarlo cambiando este flag a true.
+const MOSTRAR_LOGO_ANIMADO = false
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -59,18 +63,20 @@ export default function Dashboard() {
 
       <div className={`container ${styles.content}`}>
         <div className={styles.bienvenida}>
-          <div className={styles.logoFrame}>
-            <video
-              className={styles.logoVideo}
-              src={import.meta.env.BASE_URL + 'assets/logo-loop.mp4'}
-              autoPlay
-              muted
-              loop
-              playsInline
-            >
-              Improfor
-            </video>
-          </div>
+          {MOSTRAR_LOGO_ANIMADO && (
+            <div className={styles.logoFrame}>
+              <video
+                className={styles.logoVideo}
+                src={import.meta.env.BASE_URL + 'assets/logo-loop.mp4'}
+                autoPlay
+                muted
+                loop
+                playsInline
+              >
+                Improfor
+              </video>
+            </div>
+          )}
           <p className={styles.bienvenidaTexto}>Sistema de despacho EPP</p>
           <span
             className={styles.rolBadge}
