@@ -1,46 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import Header from '../../components/Header'
 import { ROLES, normalizarRol } from '../../roles'
+import { NAV_ITEMS } from '../../navItems'
 import styles from './Dashboard.module.css'
-
-// Cards disponibles — qué ve cada rol lo define ROLES[rol].pantallas
-const CARDS = {
-  despachos: {
-    emoji: '🚚',
-    label: 'Despachos',
-    desc:  'Pedidos de Laudus con guía/factura/boleta → enviar a bodega',
-    ruta:  '/despachos',
-    color: 'var(--accent)',
-  },
-  importaciones: {
-    emoji: '🚢',
-    label: 'Importaciones',
-    desc:  'Faltantes de stock para pedidos pendientes → qué importar',
-    ruta:  '/importaciones',
-    color: 'var(--success)',
-  },
-  estado_pedidos: {
-    emoji: '📋',
-    label: 'Estado de Pedidos',
-    desc:  'Kanban de cumplimiento: pendientes, parciales y despachados + KPIs',
-    ruta:  '/estado-pedidos',
-    color: '#000000',
-  },
-  inventario: {
-    emoji: '📋',
-    label: 'Ver Inventario',
-    desc:  'Buscar y gestionar el stock',
-    ruta:  '/inventario',
-    color: 'var(--primary)',
-  },
-  pedidos: {
-    emoji: '📦',
-    label: 'Pedidos',
-    desc:  'Supervisar todos los pedidos',
-    ruta:  '/pedidos',
-    color: 'var(--accent)',
-  },
-}
 
 // Logo animado (video loop) oculto por ahora a pedido del cliente — no se usa,
 // pero se deja el código listo para reactivarlo cambiando este flag a true.
@@ -55,7 +17,7 @@ export default function Dashboard() {
   })()
   const rolKey = normalizarRol(perfil?.rol) || 'admin_pedidos'
   const rol    = ROLES[rolKey]
-  const cards  = rol.pantallas.map(k => CARDS[k]).filter(Boolean)
+  const cards  = rol.pantallas.map(k => NAV_ITEMS[k]).filter(Boolean)
 
   return (
     <div className="page">

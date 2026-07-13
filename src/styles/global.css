@@ -58,6 +58,12 @@ a {
   text-decoration: none;
 }
 
+/* Menú lateral (Sidebar, solo escritorio) — empuja el contenido a la derecha
+   del ancho fijo del menú en vez de quedar tapado debajo. */
+@media (min-width: 900px) {
+  .shell-con-sidebar { padding-left: 240px; }
+}
+
 /* ─── Utilidades globales ────────────────────────────────────────────────────── */
 .page {
   min-height: 100%;

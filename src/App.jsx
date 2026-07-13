@@ -1,5 +1,6 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import ActualizacionBanner from './components/ActualizacionBanner'
+import Sidebar          from './components/Sidebar'
 import SeleccionPerfil  from './screens/SeleccionPerfil'
 import Dashboard        from './screens/Dashboard'
 import Despachos        from './screens/Despachos'
@@ -16,20 +17,32 @@ function RequireAuth({ children }) {
 }
 
 export default function App() {
+  const location = useLocation()
+  const perfil = (() => {
+    try { return JSON.parse(localStorage.getItem('admin_activo') || 'null') }
+    catch { return null }
+  })()
+  // El menú lateral solo tiene sentido con sesión iniciada y fuera de la
+  // pantalla de selección de perfil.
+  const conSidebar = !!perfil && location.pathname !== '/'
+
   return (
     <>
     <ActualizacionBanner />
-    <Routes>
-      <Route path="/"                element={<SeleccionPerfil />} />
-      <Route path="/dashboard"       element={<RequireAuth><Dashboard /></RequireAuth>} />
-      <Route path="/despachos"       element={<RequireAuth><Despachos /></RequireAuth>} />
-      <Route path="/estado-pedidos"  element={<RequireAuth><EstadoPedidos /></RequireAuth>} />
-      <Route path="/importaciones"   element={<RequireAuth><Importaciones /></RequireAuth>} />
-      <Route path="/inventario"      element={<RequireAuth><Inventario /></RequireAuth>} />
-      <Route path="/pedidos"         element={<RequireAuth><Pedidos /></RequireAuth>} />
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <div className={conSidebar ? 'shell-con-sidebar' : ''}>
+      {conSidebar && <Sidebar />}
+      <Routes>
+        <Route path="/"                element={<SeleccionPerfil />} />
+        <Route path="/dashboard"       element={<RequireAuth><Dashboard /></RequireAuth>} />
+        <Route path="/despachos"       element={<RequireAuth><Despachos /></RequireAuth>} />
+        <Route path="/estado-pedidos"  element={<RequireAuth><EstadoPedidos /></RequireAuth>} />
+        <Route path="/importaciones"   element={<RequireAuth><Importaciones /></RequireAuth>} />
+        <Route path="/inventario"      element={<RequireAuth><Inventario /></RequireAuth>} />
+        <Route path="/pedidos"         element={<RequireAuth><Pedidos /></RequireAuth>} />
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </div>
     </>
   )
 }

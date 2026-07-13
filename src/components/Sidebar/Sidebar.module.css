@@ -1,0 +1,72 @@
+/* Oculto por defecto (mobile/tablet angosto): la navegación sigue siendo la
+   de siempre (cards del Dashboard + back arrow). Solo aparece en escritorio. */
+.sidebar { display: none; }
+
+@media (min-width: 900px) {
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: 240px;
+    background: var(--primary);
+    padding: 20px 14px;
+    gap: 14px;
+    z-index: 200;
+    overflow-y: auto;
+  }
+}
+
+.brand {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 6px;
+}
+.brandEmoji { font-size: 22px; }
+.brandTitle { font-size: 18px; font-weight: 800; color: #fff; letter-spacing: -0.3px; }
+
+.rolBadge {
+  align-self: flex-start;
+  font-size: 11px; font-weight: 700;
+  border-radius: 20px; padding: 4px 10px;
+  margin: 0 6px 4px;
+}
+
+.items { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+
+.item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14px; font-weight: 600;
+  color: rgba(255,255,255,0.82);
+  text-align: left;
+  transition: background 0.15s, color 0.15s;
+}
+.item:hover  { background: rgba(255,255,255,0.1); color: #fff; }
+.itemActive {
+  background: #fff;
+  color: var(--primary);
+}
+.itemActive:hover { background: #fff; color: var(--primary); }
+.itemEmoji { font-size: 17px; line-height: 1; }
+
+.userBox {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 12px 6px 0;
+  border-top: 1px solid rgba(255,255,255,0.18);
+}
+.userName {
+  font-size: 12px; font-weight: 600;
+  color: rgba(255,255,255,0.75);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.logoutBtn {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px; font-weight: 700;
+  transition: background 0.15s;
+}
+.logoutBtn:hover { background: rgba(255,255,255,0.28); }
