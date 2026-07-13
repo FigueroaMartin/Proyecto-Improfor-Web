@@ -30,6 +30,7 @@ const normalizePedido = (row) => ({
   laudus_order_id:  row.laudus_order_id ?? null,
   carrier:          row.carrier ?? null,
   tipo_despacho:    row.tipo_despacho ?? null,
+  stock_actualizado: row.stock_actualizado === true,
 })
 
 const normalizeItem = (row) => ({
@@ -173,6 +174,26 @@ export const insertPedido = async (pedido) => {
 export const updatePedido = async (id, cambios) => {
   const { error } = await supabase.from('pedidos').update(cambios).eq('id', id)
   if (error) throw new Error(error.message)
+}
+
+// El bodeguero confirma que ya fue a buscar físicamente los productos que
+// llegaron nuevos (aviso de "salida de bodega actualizada"). Apaga el aviso y
+// deja la referencia de stock al día para no re-avisar por el mismo nivel.
+export const confirmarProductosSeparados = async (pedidoId) => {
+  const { data: items, error: iErr } = await supabase
+    .from('items_pedido')
+    .select('id, producto_id, productos(stock)')
+    .eq('pedido_id', pedidoId)
+  if (iErr) throw new Error(iErr.message)
+
+  for (const it of items || []) {
+    const stockActual = it.productos?.stock ?? 0
+    await supabase.from('items_pedido').update({ stock_referencia: stockActual }).eq('id', it.id)
+  }
+
+  const { error: pErr } = await supabase
+    .from('pedidos').update({ stock_actualizado: false }).eq('id', pedidoId)
+  if (pErr) throw new Error(pErr.message)
 }
 
 // ─── Ítems de pedido ──────────────────────────────────────────────────────────

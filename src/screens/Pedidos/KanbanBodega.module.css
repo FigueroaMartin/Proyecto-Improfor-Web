@@ -64,10 +64,17 @@
 .transp_cliente_retira { background: #e8f1fb; color: #1a6bb5; }   /* azul    */
 .transp_salida_bodega  { background: #ede9fe; color: #7c3aed; }   /* morado  */
 
+/* Aviso de stock actualizado (salida de bodega) */
+.avisoStock {
+  font-size: 12px; font-weight: 700; color: #7c3aed;
+  background: #ede9fe; border-radius: 8px; padding: 6px 10px;
+  align-self: flex-start;
+}
+
 /* Acciones — botones grandes (mín. táctil 44px) */
-.acciones { display: flex; gap: 8px; margin-top: 4px; }
-.btnVer, .btnCerrar {
-  flex: 1; min-height: 44px;
+.acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.btnVer, .btnCerrar, .btnSeparados {
+  flex: 1; min-height: 44px; min-width: 120px;
   border-radius: 10px; font-size: 14px; font-weight: 800; cursor: pointer;
   transition: opacity 0.15s, transform 0.1s;
 }
@@ -81,6 +88,12 @@
 .btnCerrar:hover { opacity: 0.9; }
 .btnCerrar:active { transform: scale(0.98); }
 .btnCerrar:disabled { opacity: 0.5; cursor: not-allowed; }
+.btnSeparados {
+  background: #7c3aed; border: none; color: #fff;
+}
+.btnSeparados:hover { opacity: 0.9; }
+.btnSeparados:active { transform: scale(0.98); }
+.btnSeparados:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ── Modal detalle ── */
 .modalBody { display: flex; flex-direction: column; gap: 14px; }

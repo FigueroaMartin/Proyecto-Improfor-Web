@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../lib/supabase'
-import { getPedidos, getPedidoById, updatePedido } from '../../db'
+import { getPedidos, getPedidoById, updatePedido, confirmarProductosSeparados } from '../../db'
 import Spinner from '../../components/Spinner'
 import Modal   from '../../components/Modal'
 import styles  from './KanbanBodega.module.css'
@@ -49,6 +49,7 @@ export default function KanbanBodega() {
   const [detalle,     setDetalle]     = useState(null)
   const [cargandoDet, setCargandoDet] = useState(false)
   const [cerrando,    setCerrando]    = useState(null)
+  const [confirmando, setConfirmando] = useState(null)
 
   const cargar = useCallback(async () => {
     try { setPedidos(await getPedidos()); setError('') }
@@ -81,6 +82,17 @@ export default function KanbanBodega() {
       await cargar()
     } catch (e) { window.alert('Error al cerrar: ' + e.message) }
     finally { setCerrando(null) }
+  }
+
+  // El bodeguero confirma que fue a buscar físicamente los productos que
+  // llegaron nuevos (aviso "se actualizó la salida de bodega").
+  const confirmarSeparados = async (p) => {
+    setConfirmando(p.id)
+    try {
+      await confirmarProductosSeparados(p.id)
+      await cargar()
+    } catch (e) { window.alert('Error al confirmar: ' + e.message) }
+    finally { setConfirmando(null) }
   }
 
   const porCol = (id) => pedidos.filter(p => columnaDe(p) === id)
@@ -130,8 +142,23 @@ export default function KanbanBodega() {
                     {p.estado === 'cerrado' ? `Cerrado ${tiempoRel(p.cerrado_en)}` : `Creado ${tiempoRel(p.creado_en)}`}
                   </span>
 
+                  {p.tipo_despacho === 'salida_bodega' && p.stock_actualizado && (
+                    <span className={styles.avisoStock}>🔔 Se ha actualizado la salida de bodega</span>
+                  )}
+
                   <div className={styles.acciones}>
-                    <button className={styles.btnVer} onClick={() => verPedido(p)}>Ver pedido</button>
+                    <button className={styles.btnVer} onClick={() => verPedido(p)}>
+                      {p.tipo_despacho === 'salida_bodega' ? 'Ver salida de bodega' : 'Ver pedido'}
+                    </button>
+                    {p.tipo_despacho === 'salida_bodega' && p.stock_actualizado && (
+                      <button
+                        className={styles.btnSeparados}
+                        disabled={confirmando === p.id}
+                        onClick={() => confirmarSeparados(p)}
+                      >
+                        {confirmando === p.id ? 'Confirmando…' : '✅ Productos separados'}
+                      </button>
+                    )}
                     {esActivos && (
                       <button
                         className={styles.btnCerrar}

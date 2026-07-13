@@ -74,14 +74,15 @@ Deno.serve(async (req) => {
     // Mapear líneas a productos.id por laudus_id (productId de Laudus)
     const productIds = [...new Set(itemsRaw.map((i: any) => i?.product?.productId).filter((x: any) => x != null))]
     const idMap = new Map<number, string>()
+    const stockMap = new Map<string, number>()
     if (productIds.length > 0) {
       const { data: prods, error: pErr } = await supabase
-        .from('productos').select('id, laudus_id').in('laudus_id', productIds)
+        .from('productos').select('id, laudus_id, stock').in('laudus_id', productIds)
       if (pErr) throw new Error(pErr.message)
-      for (const p of prods || []) idMap.set(p.laudus_id, p.id)
+      for (const p of prods || []) { idMap.set(p.laudus_id, p.id); stockMap.set(p.id, p.stock ?? 0) }
     }
 
-    const items: { producto_id: string; cantidad_pedida: number }[] = []
+    const items: { producto_id: string; cantidad_pedida: number; stock_referencia: number }[] = []
     const skipped: any[] = []
     for (const it of itemsRaw) {
       const qty = Number(it?.quantity) || 0
@@ -101,7 +102,9 @@ Deno.serve(async (req) => {
           motivo: !prodId ? 'no es producto de inventario' : 'cantidad 0' })
         continue
       }
-      items.push({ producto_id: prodId, cantidad_pedida: qty })
+      // stock_referencia: punto de partida para detectar si llega más stock
+      // después (ver check-stock-salida-bodega), solo relevante para SV.
+      items.push({ producto_id: prodId, cantidad_pedida: qty, stock_referencia: stockMap.get(prodId) ?? 0 })
     }
 
     if (items.length === 0) {
