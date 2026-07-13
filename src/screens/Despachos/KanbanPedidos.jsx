@@ -166,10 +166,17 @@ export default function KanbanPedidos() {
   // Escribe el cambio (optimista + Supabase)
   const persistir = async (orderId, campos) => {
     setOrders(prev => prev.map(o => o.salesOrderId === orderId ? { ...o, ...campos } : o))
-    await supabase.from('kanban_despacho').upsert(
+    const { error } = await supabase.from('kanban_despacho').upsert(
       { laudus_order_id: orderId, ...campos, updated_at: new Date().toISOString() },
       { onConflict: 'laudus_order_id' }
     )
+    if (error) {
+      // La escritura falló (ej. constraint de BD) — avisamos y recargamos para
+      // que la tarjeta vuelva a reflejar el estado real en vez de quedar
+      // mostrando un cambio que en realidad no se guardó.
+      window.alert('⚠️ No se pudo guardar el cambio: ' + error.message)
+      cargar(desde, hasta)
+    }
   }
 
   // ── Enviar TODA una columna (Completos o Stock parcial) a bodega ─────────────
@@ -184,7 +191,7 @@ export default function KanbanPedidos() {
     for (const o of pendientes) {
       try {
         const { data, error } = await supabase.functions.invoke('laudus-send-to-bodega', {
-          body: { salesOrderId: o.salesOrderId },
+          body: { salesOrderId: o.salesOrderId, documento: o.documento || null },
         })
         if (error) throw error
         if (!data?.ok) throw new Error(data?.error || 'error')

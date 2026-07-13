@@ -29,6 +29,7 @@ const normalizePedido = (row) => ({
   cerrado_en:       row.cerrado_en,
   laudus_order_id:  row.laudus_order_id ?? null,
   carrier:          row.carrier ?? null,
+  tipo_despacho:    row.tipo_despacho ?? null,
 })
 
 const normalizeItem = (row) => ({

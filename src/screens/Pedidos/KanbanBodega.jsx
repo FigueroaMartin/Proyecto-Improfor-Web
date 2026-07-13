@@ -5,12 +5,13 @@ import Spinner from '../../components/Spinner'
 import Modal   from '../../components/Modal'
 import styles  from './KanbanBodega.module.css'
 
-// Las 3 columnas de destino imitan la disposición física de la bodega.
+// Las columnas de destino imitan la disposición física de la bodega.
 const COLS = [
-  { id: 'activos',        label: 'Pedidos activos', emoji: '📋', cls: 'colActivos' },
-  { id: 'starken',        label: 'Starken',         emoji: '📦', cls: 'colStarken' },
-  { id: 'transportistas', label: 'Transportistas',  emoji: '🚚', cls: 'colTransp'  },
-  { id: 'cliente_retira', label: 'Cliente retira',  emoji: '🙋', cls: 'colRetira'  },
+  { id: 'activos',        label: 'Pedidos activos',   emoji: '📋', cls: 'colActivos' },
+  { id: 'salida_bodega',  label: 'Salidas de bodega', emoji: '📤', cls: 'colSalida'  },
+  { id: 'starken',        label: 'Starken',           emoji: '📦', cls: 'colStarken' },
+  { id: 'transportistas', label: 'Transportistas',    emoji: '🚚', cls: 'colTransp'  },
+  { id: 'cliente_retira', label: 'Cliente retira',    emoji: '🙋', cls: 'colRetira'  },
 ]
 
 const norm = (s) => (s || '').trim().toLowerCase()
@@ -23,9 +24,11 @@ function destinoDe(carrier) {
   return 'transportistas'   // cualquier otro transportista (o sin asignar)
 }
 
-// Clasificación automática: al cerrar, el pedido va a su columna según el carrier.
+// Clasificación automática: al cerrar, el pedido va a su columna según el carrier,
+// salvo que sea una salida de bodega (SV) — esas no llevan transportista, van aparte.
 function columnaDe(p) {
   if (p.estado !== 'cerrado') return 'activos'
+  if (p.tipo_despacho === 'salida_bodega') return 'salida_bodega'
   return destinoDe(p.carrier)
 }
 
@@ -104,7 +107,7 @@ export default function KanbanBodega() {
                 <div key={p.id} className={styles.card}>
                   <div className={styles.cardTop}>
                     <span className={styles.numero}>{p.numero_pedido}</span>
-                    {!esActivos && p.carrier && (
+                    {!esActivos && col.id !== 'salida_bodega' && p.carrier && (
                       <span className={`${styles.transpBadge} ${styles['transp_' + col.id]}`}>{p.carrier}</span>
                     )}
                   </div>
@@ -112,9 +115,15 @@ export default function KanbanBodega() {
                   {p.cliente_nombre && <span className={styles.cliente}>👤 {p.cliente_nombre}</span>}
 
                   {esActivos && (
-                    <span className={`${styles.transpBadge} ${styles.transpDestino} ${styles['transp_' + destinoDe(p.carrier)]}`}>
-                      🚚 {p.carrier || 'Sin transportista'}
-                    </span>
+                    p.tipo_despacho === 'salida_bodega' ? (
+                      <span className={`${styles.transpBadge} ${styles.transpDestino} ${styles.transp_salida_bodega}`}>
+                        📤 Salida de bodega (SV)
+                      </span>
+                    ) : (
+                      <span className={`${styles.transpBadge} ${styles.transpDestino} ${styles['transp_' + destinoDe(p.carrier)]}`}>
+                        🚚 {p.carrier || 'Sin transportista'}
+                      </span>
+                    )
                   )}
 
                   <span className={styles.tiempo}>
@@ -146,7 +155,11 @@ export default function KanbanBodega() {
           <div className={styles.modalBody}>
             <div className={styles.modalInfo}>
               {detalle.cliente_nombre && <span className={styles.cliente}>👤 {detalle.cliente_nombre}</span>}
-              {detalle.carrier && (
+              {detalle.tipo_despacho === 'salida_bodega' ? (
+                <span className={`${styles.transpBadge} ${styles.transp_salida_bodega}`}>
+                  📤 Salida de bodega (SV)
+                </span>
+              ) : detalle.carrier && (
                 <span className={`${styles.transpBadge} ${styles['transp_' + destinoDe(detalle.carrier)]}`}>
                   🚚 {detalle.carrier}
                 </span>

@@ -3,7 +3,9 @@
 // en Supabase a partir de la orden de Laudus. Mapea cada línea a productos.id
 // por `laudus_id`. Evita duplicados con `pedidos.laudus_order_id`.
 //
-// Body: { salesOrderId: number, dryRun?: boolean }
+// Body: { salesOrderId: number, documento?: string, dryRun?: boolean }
+//   documento: 'guia' | 'boleta' | 'factura' | 'salida_bodega' (SV) — se guarda
+//   en pedidos.tipo_despacho para que bodega distinga salidas sin venta.
 // Requiere Secrets: LAUDUS_USERNAME, LAUDUS_PASSWORD, LAUDUS_COMPANY_VATID
 
 import { createClient } from 'jsr:@supabase/supabase-js@2'
@@ -41,6 +43,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}))
     const salesOrderId = Number(body?.salesOrderId)
     const dryRun = body?.dryRun === true
+    const documento = typeof body?.documento === 'string' ? body.documento : null
     if (!salesOrderId) return json({ ok: false, error: 'Falta salesOrderId' }, 400)
 
     const supabase = createClient(
@@ -65,6 +68,7 @@ Deno.serve(async (req) => {
     const order = await r.json()
 
     const cliente   = order?.customer?.name || ''
+    const carrier   = order?.carrier?.name || null   // transportista: Starken / Cliente Retira / otro
     const itemsRaw  = Array.isArray(order?.items) ? order.items : []
 
     // Mapear líneas a productos.id por laudus_id (productId de Laudus)
@@ -96,7 +100,7 @@ Deno.serve(async (req) => {
     }
 
     if (dryRun) {
-      return json({ ok: true, dryRun: true, salesOrderId, cliente, items: items.length, skipped })
+      return json({ ok: true, dryRun: true, salesOrderId, cliente, carrier, documento, items: items.length, skipped })
     }
 
     // Crear pedido + ítems
@@ -108,6 +112,8 @@ Deno.serve(async (req) => {
         notas: `Orden Laudus #${salesOrderId}`,
         estado: 'pendiente',
         laudus_order_id: salesOrderId,
+        carrier,
+        tipo_despacho: documento,
       })
       .select().single()
     if (peErr) throw new Error(peErr.message)
@@ -116,7 +122,7 @@ Deno.serve(async (req) => {
     const { error: iErr } = await supabase.from('items_pedido').insert(rows)
     if (iErr) throw new Error(iErr.message)
 
-    return json({ ok: true, pedidoId: pedido.id, numero: pedido.numero, items: items.length, skipped })
+    return json({ ok: true, pedidoId: pedido.id, numero: pedido.numero, carrier, documento, items: items.length, skipped })
   } catch (e) {
     return json({ ok: false, error: String((e as Error)?.message ?? e) }, 500)
   }
