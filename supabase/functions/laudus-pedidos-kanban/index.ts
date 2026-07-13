@@ -57,19 +57,27 @@ Deno.serve(async (req) => {
       for (const p of data || []) stockMap.set(p.codigo, p.stock ?? 0)
     }
 
+    // "Flete" es el costo de transporte cobrado dentro de la misma factura/
+    // boleta, no un producto de inventario — no debe contar para decidir si
+    // un pedido tiene stock completo/parcial/sin stock.
+    const esFlete = (sku: string) => (sku || '').trim().toLowerCase() === 'flete'
+
     const orders: any[] = []
     for (const p of pedRows || []) {
       let totalAmount = 0
       let fullLines = 0, anyLines = 0, relevantLines = 0
       const lines = (p.items || []).filter((l: any) => l.sku).map((l: any) => {
-        const stock = stockMap.get(l.sku) ?? 0
-        const suficiente = stock >= l.qty
+        const flete = esFlete(l.sku)
+        const stock = flete ? null : (stockMap.get(l.sku) ?? 0)
+        const suficiente = flete ? true : stock >= l.qty
         const precio = (Number(l.unitPrice) || 0) * (1 - (Number(l.discount) || 0) / 100)
         totalAmount += precio * l.qty
-        relevantLines++
-        if (suficiente) fullLines++
-        if (stock > 0) anyLines++
-        return { sku: l.sku, desc: l.desc, qty: l.qty, precio, stock, suficiente }
+        if (!flete) {
+          relevantLines++
+          if (suficiente) fullLines++
+          if (stock > 0) anyLines++
+        }
+        return { sku: l.sku, desc: l.desc, qty: l.qty, precio, stock, suficiente, esFlete: flete }
       })
 
       let stockStatus: string

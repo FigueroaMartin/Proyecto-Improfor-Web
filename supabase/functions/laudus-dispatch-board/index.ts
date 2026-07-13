@@ -58,9 +58,13 @@ Deno.serve(async (req) => {
       wbMap.set(it.traceFromId, e)
     }
 
+    // "Flete" es el costo de transporte cobrado en la misma factura/guía, no
+    // un producto — se muestra en la línea pero no cuenta para el % de avance.
+    const esFlete = (sku: string) => (sku || '').trim().toLowerCase() === 'flete'
+
     const board: any[] = []
     for (const o of pedRows || []) {
-      const items = (o.items || []).map((l: any) => ({ itemId: l.itemId, qty: l.qty, sku: l.sku, desc: l.desc }))
+      const items = (o.items || []).map((l: any) => ({ itemId: l.itemId, qty: l.qty, sku: l.sku, desc: l.desc, esFlete: esFlete(l.sku) }))
       let hasDoc = false
       const docLabels = new Set<string>()
       let totalPending = 0
@@ -75,17 +79,19 @@ Deno.serve(async (req) => {
         if (waybillQty > 0) docLabels.add('Guía de despacho')
         const effective = waybillQty > 0 ? waybillQty : invoicedQty
         const pending   = Math.max(0, it.qty - effective)
-        totalPending += pending
+        if (!it.esFlete) totalPending += pending
         const status = (it.qty > 0 && effective >= it.qty) ? 'complete' : effective > 0 ? 'partial' : 'none'
-        if (status === 'complete') completedLines++
+        if (!it.esFlete && status === 'complete') completedLines++
         return { ...it, invoicedQty, waybillQty, effective, pending, status }
       })
       if (!hasDoc) continue
-      const totalQty = items.reduce((s: number, i: any) => s + i.qty, 0)
-      const totalEff = lines.reduce((s: number, l: any) => s + Math.min(l.effective, l.qty), 0)
+      const contables = items.filter((i: any) => !i.esFlete)
+      const linesContables = lines.filter((l: any) => !l.esFlete)
+      const totalQty = contables.reduce((s: number, i: any) => s + i.qty, 0)
+      const totalEff = linesContables.reduce((s: number, l: any) => s + Math.min(l.effective, l.qty), 0)
       const pct = totalQty > 0 ? Math.round((totalEff / totalQty) * 100) : 0
-      const status = lines.every((l: any) => l.status === 'complete') ? 'complete' : lines.some((l: any) => l.status !== 'none') ? 'partial' : 'none'
-      board.push({ salesOrderId: o.sales_order_id, issuedDate: o.issued_date, customer: o.customer, docs: [...docLabels], lines, status, pct, totalPending, completedLines, totalLines: lines.length })
+      const status = linesContables.length === 0 ? 'none' : linesContables.every((l: any) => l.status === 'complete') ? 'complete' : linesContables.some((l: any) => l.status !== 'none') ? 'partial' : 'none'
+      board.push({ salesOrderId: o.sales_order_id, issuedDate: o.issued_date, customer: o.customer, docs: [...docLabels], lines, status, pct, totalPending, completedLines, totalLines: linesContables.length })
     }
     board.sort((a, b) => b.salesOrderId - a.salesOrderId)
 

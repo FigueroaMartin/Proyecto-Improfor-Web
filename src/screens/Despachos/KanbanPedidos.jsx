@@ -47,9 +47,9 @@ const fechaLocal = (diasAtras = 0) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
-// Indicador visual de stock del pedido
+// Indicador visual de stock del pedido (el Flete no es producto, no cuenta)
 function StockBadge({ lines }) {
-  const rel   = lines.filter(l => l.sku)
+  const rel   = lines.filter(l => l.sku && !l.esFlete)
   const full  = rel.filter(l => l.suficiente).length
   const any   = rel.filter(l => l.stock > 0).length
   const total = rel.length
@@ -414,9 +414,11 @@ export default function KanbanPedidos() {
         title={detalle ? `Pedido #${detalle.salesOrderId}` : ''}
       >
         {detalle && (() => {
-          const full  = detalle.lines.filter(l => l.suficiente)
-          const part  = detalle.lines.filter(l => !l.suficiente && l.stock > 0)
-          const zero  = detalle.lines.filter(l => l.stock === 0)
+          const flete = detalle.lines.filter(l => l.esFlete)
+          const productos = detalle.lines.filter(l => !l.esFlete)
+          const full  = productos.filter(l => l.suficiente)
+          const part  = productos.filter(l => !l.suficiente && l.stock > 0)
+          const zero  = productos.filter(l => l.stock === 0)
           return (
             <div className={styles.modalBody}>
               <div className={styles.modalInfo}>
@@ -478,6 +480,24 @@ export default function KanbanPedidos() {
                   </div>
                 ))}
               </div>
+
+              {/* Flete: costo de transporte de la misma factura/boleta, no un
+                  producto — se muestra aparte y no cuenta para el stock. */}
+              {flete.length > 0 && (
+                <div className={styles.tabla}>
+                  {flete.map((l, i) => (
+                    <div key={`fl${i}`} className={`${styles.tRow} ${styles.tFlete}`}>
+                      <span>🚚</span>
+                      <div className={styles.tProd}>
+                        <span className={styles.tDesc}>{l.desc}</span>
+                        <span className={styles.tSku}>Costo de transporte · no es producto</span>
+                      </div>
+                      <span className={styles.tNum}>{l.qty}</span>
+                      <span className={styles.tNum}>—</span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className={styles.modalTotal}>
                 Total pedido: <strong>{fmtPlata(detalle.totalAmount)}</strong>

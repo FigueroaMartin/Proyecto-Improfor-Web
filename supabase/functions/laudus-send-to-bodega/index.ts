@@ -85,10 +85,19 @@ Deno.serve(async (req) => {
     const skipped: any[] = []
     for (const it of itemsRaw) {
       const qty = Number(it?.quantity) || 0
+      const sku = it?.product?.sku || ''
+      // "Flete" es el costo de transporte cobrado dentro de la misma factura/
+      // boleta, no un producto físico — aunque exista como fila en `productos`
+      // (se sincroniza desde Laudus como cualquier ítem), no debe ir a bodega
+      // como algo para separar.
+      if (sku.trim().toLowerCase() === 'flete') {
+        skipped.push({ sku, desc: it?.itemDescription || '', qty, motivo: 'flete (costo de transporte, no es producto a separar)' })
+        continue
+      }
       const pid = it?.product?.productId
       const prodId = pid != null ? idMap.get(pid) : null
       if (!prodId || qty <= 0) {
-        skipped.push({ sku: it?.product?.sku || null, desc: it?.itemDescription || '', qty,
+        skipped.push({ sku: sku || null, desc: it?.itemDescription || '', qty,
           motivo: !prodId ? 'no es producto de inventario' : 'cantidad 0' })
         continue
       }
