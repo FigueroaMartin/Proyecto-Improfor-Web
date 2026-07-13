@@ -79,10 +79,17 @@
 .cardDesc { opacity: 0.7; }
 
 /* ── Lista ── */
-.lista   { display: flex; flex-direction: column; gap: 10px; }
+.lista   { display: grid; grid-template-columns: 1fr; gap: 10px; }
 .contador {
+  grid-column: 1 / -1;
   font-size: 12px; color: var(--muted); font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.8px; padding: 2px 0 6px;
+}
+
+/* En pantallas anchas (web de escritorio) se muestran 3 columnas para ver
+   más productos de una vez; en mobile queda en 1 columna como antes. */
+@media (min-width: 900px) {
+  .lista { grid-template-columns: repeat(3, 1fr); gap: 14px; }
 }
 
 /* ── Card ── */
@@ -94,6 +101,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  height: 100%;
 }
 
 .cardTop {
