@@ -255,6 +255,18 @@ export default function Inventario() {
               const imgs = parseImagenes(p.imagenes)
               return (
                 <div key={p.id} className={`${styles.card} ${p.descontinuado ? styles.cardDesc : ''}`}>
+                  {imgs.length > 0 ? (
+                    <img
+                      src={imgs[0]}
+                      alt={p.nombre}
+                      className={styles.cardThumb}
+                      onClick={() => setImagenFull(imgs[0])}
+                      title="Click para ampliar"
+                    />
+                  ) : (
+                    <div className={styles.cardThumbPlaceholder}>📦</div>
+                  )}
+
                   <div className={styles.cardTop}>
                     <div className={styles.cardInfo}>
                       <span className={styles.cardNombre}>{p.nombre}</span>
