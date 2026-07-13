@@ -4,6 +4,7 @@
    Negro #000000 · Blanco #FFFFFF */
 :root {
   --bg:       #6B7280;
+  --panel:    #D1D5DB;
   --primary:  #000000;
   --brand:    #9B1328;
   --success:  #D89A1D;
@@ -121,7 +122,7 @@ a {
 .btn-danger:hover { opacity: 0.88; }
 
 .input {
-  background: var(--bg);
+  background: var(--panel);
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
   padding: 12px 14px;

@@ -206,7 +206,7 @@
   display: grid;
   grid-template-columns: 24px 1fr 52px 52px 52px;
   gap: 6px; align-items: center;
-  padding: 8px 10px; border-radius: 8px; background: var(--bg);
+  padding: 8px 10px; border-radius: 8px; background: var(--panel);
 }
 .tHead {
   background: transparent; padding: 2px 10px;
@@ -223,7 +223,7 @@
 .totales {
   display: flex; align-items: center; justify-content: space-between;
   gap: 10px; flex-wrap: wrap;
-  background: var(--bg); border-radius: 10px; padding: 10px 14px;
+  background: var(--panel); border-radius: 10px; padding: 10px 14px;
   font-size: 13px; color: var(--muted);
 }
 .totales strong { color: var(--primary); }

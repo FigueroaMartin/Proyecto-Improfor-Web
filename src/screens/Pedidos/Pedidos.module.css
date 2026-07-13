@@ -60,7 +60,7 @@
 /* ── Botón Ver pedido ── */
 .btnVer {
   display: flex; align-items: center; gap: 6px; width: 100%;
-  padding: 9px 12px; background: var(--bg); border: 1px solid var(--border);
+  padding: 9px 12px; background: var(--panel); border: 1px solid var(--border);
   border-radius: 10px; font-size: 13px; font-weight: 600; color: var(--primary);
   transition: background 0.15s, border-color 0.15s; margin-top: 4px;
 }

@@ -181,7 +181,7 @@
   width: 100%; padding: 12px 14px; text-align: left; cursor: pointer;
   transition: background 0.12s;
 }
-.provHeader:hover { background: var(--bg); }
+.provHeader:hover { background: var(--panel); }
 .provFlecha { font-size: 14px; color: var(--muted); flex-shrink: 0; }
 .provInfo   { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .provNombre { font-size: 14px; font-weight: 800; color: var(--primary); }
@@ -189,14 +189,14 @@
 .provProductos {
   border-top: 1px solid var(--border);
   padding: 8px; display: flex; flex-direction: column; gap: 6px;
-  background: var(--bg);
+  background: var(--panel);
 }
 
 /* Modal producto */
 .prodModalHeader { display: flex; flex-direction: column; gap: 2px; }
 .prodStats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .prodStat {
-  background: var(--bg); border-radius: 12px; padding: 10px;
+  background: var(--panel); border-radius: 12px; padding: 10px;
   display: flex; flex-direction: column; align-items: center; gap: 1px;
 }
 .prodStatAlerta { background: #fef2f2; }
