@@ -27,9 +27,9 @@ const formatFecha = (str) => {
 }
 
 const BADGE = {
-  pendiente:  { label: 'Pendiente',  cls: 'badgePendiente' },
-  en_proceso: { label: 'En proceso', cls: 'badgeProceso'   },
-  cerrado:    { label: '✓ Cerrado',  cls: 'badgeCerrado'   },
+  pendiente:  { label: '⏳ Pendiente',  cls: 'badgePendiente' },
+  en_proceso: { label: '🔧 En proceso', cls: 'badgeProceso'   },
+  cerrado:    { label: '✓ Cerrado',     cls: 'badgeCerrado'   },
 }
 
 export default function Pedidos() {

@@ -15,8 +15,8 @@ const STATUS = {
 }
 
 const ESTADO_BODEGA = {
-  pendiente:  { label: 'En cola',     cls: 'badgeCola'    },
-  en_proceso: { label: 'En despacho', cls: 'badgeProceso' },
+  pendiente:  { label: '⏳ En cola',     cls: 'badgeCola'    },
+  en_proceso: { label: '🚚 En despacho', cls: 'badgeProceso' },
 }
 
 const fmtFecha = (str) => {
