@@ -160,7 +160,7 @@
   transition: background 0.15s, border-color 0.15s;
   margin-top: 2px;
 }
-.btnVer:hover { background: #e8e8e0; border-color: var(--primary); }
+.btnVer:hover { background: #BCC2C9; border-color: var(--primary); }
 .btnVerArrow { margin-left: auto; font-size: 18px; color: var(--muted); }
 .btnVerFotos { font-size: 12px; color: var(--muted); }
 

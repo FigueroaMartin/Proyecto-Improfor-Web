@@ -64,7 +64,7 @@
   border-radius: 10px; font-size: 13px; font-weight: 600; color: var(--primary);
   transition: background 0.15s, border-color 0.15s; margin-top: 4px;
 }
-.btnVer:hover { background: #e8e8e0; border-color: var(--primary); }
+.btnVer:hover { background: #BCC2C9; border-color: var(--primary); }
 .btnVerArrow  { margin-left: auto; font-size: 18px; color: var(--muted); }
 
 /* ── Modal detalle ── */

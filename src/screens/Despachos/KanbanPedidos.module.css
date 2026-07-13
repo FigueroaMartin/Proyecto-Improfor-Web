@@ -70,7 +70,7 @@
 
 /* ── Columna ────────────────────────────────────────────────────────────────── */
 .col {
-  background: var(--bg, #f4f6fa);
+  background: var(--panel, #f4f6fa);
   border: 2px solid var(--border);
   border-radius: 12px;
   min-height: 200px;
@@ -254,7 +254,7 @@
 .tOk    { background: #f0fdf4; }
 .tWarn  { background: #fffbeb; }
 .tBad   { background: #fef2f2; }
-.tFlete { background: #f1f1f1; font-style: italic; }
+.tFlete { background: var(--panel); font-style: italic; }
 .tProd { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .tDesc { font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tSku  { font-size: 10px; color: var(--muted); }
