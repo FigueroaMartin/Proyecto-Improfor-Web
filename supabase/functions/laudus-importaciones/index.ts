@@ -151,13 +151,22 @@ Deno.serve(async (req) => {
       poRecibidoPorItem.set(id, (poRecibidoPorItem.get(id) || 0) + (Number(row.items_quantity) || 0))
     }
     const enTransitoPorSku = new Map<string, number>()
+    const yaPedidosPorSku  = new Map<string, any>()   // detalle completo, incluso si ya cubre el faltante
     for (const row of poRows) {
       if (row.nullDoc || !row.items_product_sku) continue
       const qty      = Number(row.items_quantity) || 0
       const recibido = poRecibidoPorItem.get(row.items_itemId) || 0
       const pendCompra = Math.max(0, qty - recibido)
       if (pendCompra > 0) {
-        enTransitoPorSku.set(row.items_product_sku, (enTransitoPorSku.get(row.items_product_sku) || 0) + pendCompra)
+        const sku = row.items_product_sku
+        enTransitoPorSku.set(sku, (enTransitoPorSku.get(sku) || 0) + pendCompra)
+        const e = yaPedidosPorSku.get(sku) || {
+          sku, desc: row.items_product_description || '', cantidad: 0,
+          proveedor: row.supplier_name || 'Sin proveedor', ordenes: new Set<number>(),
+        }
+        e.cantidad += pendCompra
+        e.ordenes.add(row.purchaseOrderId)
+        yaPedidosPorSku.set(sku, e)
       }
     }
 
@@ -246,6 +255,12 @@ Deno.serve(async (req) => {
     }
     const proveedores = [...provGroups.values()].sort((a, b) => b.totalFaltante - a.totalFaltante)
 
+    // Cuarta columna: todo lo que ya se le pidió al proveedor y sigue en
+    // camino (independiente de si ya cubre o no el faltante del cliente).
+    const yaPedidos = [...yaPedidosPorSku.values()]
+      .map(e => ({ sku: e.sku, desc: e.desc, cantidad: e.cantidad, proveedor: e.proveedor, ordenes: e.ordenes.size }))
+      .sort((a, b) => b.cantidad - a.cantidad)
+
     // Pedidos afectados: con al menos una línea pendiente cuyo producto tiene faltante.
     // Cada línea lleva sinStock=true si su pendiente no se cubre con el stock actual.
     const pedidos = pendOrders
@@ -272,6 +287,7 @@ Deno.serve(async (req) => {
       pedidos,
       productos,
       proveedores,
+      yaPedidos,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   } catch (e) {
     return new Response(JSON.stringify({ ok: false, error: String((e as Error)?.message ?? e) }),

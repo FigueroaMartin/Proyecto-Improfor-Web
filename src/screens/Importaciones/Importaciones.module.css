@@ -59,6 +59,7 @@
 }
 @media (min-width: 760px)  { .columnas { grid-template-columns: 1fr 1fr; } }
 @media (min-width: 1120px) { .columnas { grid-template-columns: 1fr 1fr 1fr; } }
+@media (min-width: 1480px) { .columnas { grid-template-columns: 1fr 1fr 1fr 1fr; } }
 
 /* Buscador por columna */
 .colSearch {
@@ -90,6 +91,7 @@
 .headerPedidos     { color: #4338ca; border-bottom-color: #c7d2fe; }
 .headerProductos   { color: #b91c1c; border-bottom-color: #fecaca; }
 .headerProveedores { color: #0e7490; border-bottom-color: #a5f3fc; }
+.headerYaPedidos   { color: var(--state-special); border-bottom-color: var(--state-special-bg); }
 .columnaCount {
   margin-left: auto;
   background: var(--card); border: 1px solid var(--border);
@@ -133,6 +135,7 @@
 
 /* ── Cards productos ── */
 .cardProducto { flex-direction: row; align-items: center; gap: 12px; border-left: 4px solid #b91c1c; }
+.cardEnCamino { border-left-color: var(--state-special); }
 .prodInfo     { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .prodNombre   { font-size: 13px; font-weight: 700; color: var(--primary); line-height: 1.3; }
 .prodSku      { font-size: 11px; color: var(--muted); font-family: monospace; }
@@ -144,6 +147,10 @@
 }
 .faltanteNum { display: block; font-size: 20px; font-weight: 800; color: #b91c1c; line-height: 1.1; }
 .faltanteLbl { font-size: 10px; font-weight: 700; color: #b91c1c; text-transform: uppercase; }
+
+.enCaminoBadge { background: var(--state-special-bg); border-color: #ddd6fe; }
+.enCaminoBadge .faltanteNum,
+.enCaminoBadge .faltanteLbl { color: var(--state-special); }
 
 /* ── Modales ── */
 .modalBody { display: flex; flex-direction: column; gap: 14px; }

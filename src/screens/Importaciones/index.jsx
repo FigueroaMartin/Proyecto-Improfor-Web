@@ -31,6 +31,7 @@ export default function Importaciones() {
   const [qPedidos,     setQPedidos]     = useState('')
   const [qProductos,   setQProductos]   = useState('')
   const [qProveedores, setQProveedores] = useState('')
+  const [qYaPedidos,   setQYaPedidos]   = useState('')
   const [provAbierto,  setProvAbierto]  = useState(null)
 
   // Modales
@@ -78,6 +79,9 @@ export default function Importaciones() {
     !qProveedores ||
     incluye(g.proveedor, qProveedores) ||
     g.productos.some(p => incluye(p.desc, qProveedores) || incluye(p.sku, qProveedores))
+  )
+  const yaPedidosFiltrados = !data ? [] : (data.yaPedidos || []).filter(p =>
+    !qYaPedidos || incluye(p.desc, qYaPedidos) || incluye(p.sku, qYaPedidos) || incluye(p.proveedor, qYaPedidos)
   )
 
   return (
@@ -279,6 +283,38 @@ export default function Importaciones() {
                       </div>
                     )
                   })}
+                </div>
+
+                {/* ══ Columna 4: ya pedidos al proveedor ══ */}
+                <div className={styles.columna}>
+                  <div className={`${styles.columnaHeader} ${styles.headerYaPedidos}`}>
+                    🚢 Ya pedidos
+                    <span className={styles.columnaCount}>{yaPedidosFiltrados.length}</span>
+                  </div>
+                  <input
+                    className={styles.colSearch}
+                    placeholder="Buscar producto, SKU o proveedor…"
+                    value={qYaPedidos}
+                    onChange={e => setQYaPedidos(e.target.value)}
+                  />
+
+                  {yaPedidosFiltrados.length === 0 ? (
+                    <p className={styles.emptyHint}>No hay órdenes de compra pendientes de recibir.</p>
+                  ) : yaPedidosFiltrados.map(p => (
+                    <div key={p.sku} className={`${styles.card} ${styles.cardProducto} ${styles.cardEnCamino}`}>
+                      <div className={styles.prodInfo}>
+                        <span className={styles.prodNombre}>{p.desc}</span>
+                        <span className={styles.prodSku}>{p.sku} · 🚢 {p.proveedor}</span>
+                        <span className={styles.prodDetalle}>
+                          {p.ordenes} orden{p.ordenes !== 1 ? 'es' : ''} de compra pendiente{p.ordenes !== 1 ? 's' : ''} de recibir
+                        </span>
+                      </div>
+                      <div className={`${styles.faltanteBadge} ${styles.enCaminoBadge}`}>
+                        <span className={styles.faltanteNum}>{p.cantidad.toLocaleString('es-CL')}</span>
+                        <span className={styles.faltanteLbl}>en camino</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
