@@ -212,7 +212,8 @@ export default function Importaciones() {
                         <span className={styles.prodNombre}>{prod.desc}</span>
                         <span className={styles.prodSku}>{prod.sku} · 🚢 {prod.proveedor}</span>
                         <span className={styles.prodDetalle}>
-                          Ya pedido: <strong>{prod.totalPedido}</strong> · Pendiente: <strong>{prod.pendiente}</strong> · Stock: <strong>{prod.stock}</strong>
+                          Pedido por clientes: <strong>{prod.totalPedido}</strong> · Pendiente: <strong>{prod.pendiente}</strong> · Stock: <strong>{prod.stock}</strong>
+                          {prod.enTransito > 0 && <> · 🚢 Ya pedido al proveedor: <strong>{prod.enTransito}</strong></>}
                         </span>
                       </div>
                       <div className={styles.faltanteBadge}>
@@ -371,7 +372,7 @@ export default function Importaciones() {
               <div className={styles.prodStats}>
                 <div className={styles.prodStat}>
                   <span className={styles.prodStatNum}>{detalleProducto.totalPedido}</span>
-                  <span className={styles.prodStatLbl}>Ya pedido</span>
+                  <span className={styles.prodStatLbl}>Pedido clientes</span>
                 </div>
                 <div className={styles.prodStat}>
                   <span className={styles.prodStatNum}>{detalleProducto.pendiente}</span>
@@ -380,6 +381,10 @@ export default function Importaciones() {
                 <div className={styles.prodStat}>
                   <span className={styles.prodStatNum}>{detalleProducto.stock}</span>
                   <span className={styles.prodStatLbl}>Stock</span>
+                </div>
+                <div className={styles.prodStat}>
+                  <span className={styles.prodStatNum}>{detalleProducto.enTransito ?? 0}</span>
+                  <span className={styles.prodStatLbl}>🚢 Al proveedor</span>
                 </div>
                 <div className={`${styles.prodStat} ${styles.prodStatAlerta}`}>
                   <span className={styles.prodStatNum}>{detalleProducto.faltante.toLocaleString('es-CL')}</span>

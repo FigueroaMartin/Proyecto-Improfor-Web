@@ -3,11 +3,15 @@
 // de venta de Laudus (cubiertas parcialmente o sin documento), suma la demanda
 // por producto y la compara contra el stock actual (tabla productos en Supabase).
 //
-//   faltante = max(0, demanda pendiente − stock actual)
+//   faltante = max(0, demanda pendiente − stock actual − en tránsito del proveedor)
+//
+// "En tránsito" = lo que ya se le pidió al proveedor (purchases/orders) y
+// aún no ha llegado (no aparece recibido en purchases/waybills), para no
+// duplicar una importación que ya viene en camino.
 //
 // Devuelve:
 //   • pedidos   → pedidos con al menos una línea cuyo producto tiene faltante
-//   • productos → cada producto con pendiente / stock / faltante (a importar)
+//   • productos → cada producto con totalPedido / pendiente / stock / enTransito / faltante (a importar)
 //
 // Body opcional: { desde: "2026-04-01" }  (por defecto, últimos 60 días)
 // Requiere Secrets: LAUDUS_USERNAME, LAUDUS_PASSWORD, LAUDUS_COMPANY_VATID
@@ -81,7 +85,7 @@ Deno.serve(async (req) => {
 
     const token = await laudusLogin()
 
-    const [orderRows, invoiceRows, waybillRows] = await Promise.all([
+    const [orderRows, invoiceRows, waybillRows, poRows, poWaybillRows] = await Promise.all([
       listAll(token, 'sales/orders/list',
         ['salesOrderId', 'issuedDate', 'nullDoc', 'customer.name',
          'items.itemId', 'items.quantity', 'items.product.sku', 'items.product.description'],
@@ -94,6 +98,16 @@ Deno.serve(async (req) => {
         ['salesWaybillId', 'nullDoc', 'issuedDate',
          'items.quantity', 'items.traceFrom.fromId', 'items.traceFrom.fromStep'],
         'salesWaybillId', desdeTs),
+      // Ordenes de compra a proveedores: lo que ya se pidió y aun no llega
+      // (se resta del faltante para no importar de más lo que ya viene en camino).
+      listAll(token, 'purchases/orders/list',
+        ['purchaseOrderId', 'issuedDate', 'nullDoc', 'supplier.name',
+         'items.itemId', 'items.quantity', 'items.product.sku', 'items.product.description'],
+        'purchaseOrderId', desdeTs),
+      listAll(token, 'purchases/waybills/list',
+        ['purchaseWaybillId', 'nullDoc', 'issuedDate',
+         'items.quantity', 'items.traceFrom.fromId', 'items.traceFrom.fromStep'],
+        'purchaseWaybillId', desdeTs),
     ])
 
     // Agrupar órdenes
@@ -127,6 +141,26 @@ Deno.serve(async (req) => {
       wbQty.set(id, (wbQty.get(id) || 0) + (Number(row.items_quantity) || 0))
     }
 
+    // ── Órdenes de compra a proveedores: cuánto sigue "en camino" por SKU ──
+    // (traceFrom.fromStep '2' identifica que la guía de recepción viene de
+    //  una orden de compra, análogo a 'O' en el lado de ventas)
+    const poRecibidoPorItem = new Map<number, number>()
+    for (const row of poWaybillRows) {
+      if (row.nullDoc || row.items_traceFrom_fromStep !== '2') continue
+      const id = row.items_traceFrom_fromId
+      poRecibidoPorItem.set(id, (poRecibidoPorItem.get(id) || 0) + (Number(row.items_quantity) || 0))
+    }
+    const enTransitoPorSku = new Map<string, number>()
+    for (const row of poRows) {
+      if (row.nullDoc || !row.items_product_sku) continue
+      const qty      = Number(row.items_quantity) || 0
+      const recibido = poRecibidoPorItem.get(row.items_itemId) || 0
+      const pendCompra = Math.max(0, qty - recibido)
+      if (pendCompra > 0) {
+        enTransitoPorSku.set(row.items_product_sku, (enTransitoPorSku.get(row.items_product_sku) || 0) + pendCompra)
+      }
+    }
+
     // Todas las líneas por pedido (para el detalle) + demanda agregada por SKU
     const pendOrders: any[] = []
     const porSku = new Map<string, any>()
@@ -135,6 +169,7 @@ Deno.serve(async (req) => {
       let tienePendiente = false
       for (const it of o.items) {
         if (!it.sku) continue   // líneas sin producto (texto libre) no se comparan
+        if (it.sku.trim().toLowerCase() === 'flete') continue   // el flete no es un producto a importar
         const inv = invQty.get(it.itemId) || 0
         const wb  = wbQty.get(it.itemId)  || 0
         const effective = wb > 0 ? wb : inv
@@ -180,16 +215,18 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Productos con faltante (demanda pendiente > stock)
+    // Productos con faltante (demanda pendiente > stock disponible − lo que
+    // ya se le pidió al proveedor y sigue en camino, para no duplicar el pedido)
     const productos: any[] = []
     for (const e of porSku.values()) {
-      const stock    = stockMap.get(e.sku) ?? 0
-      const faltante = Math.max(0, e.pendiente - stock)
+      const stock      = stockMap.get(e.sku) ?? 0
+      const enTransito = enTransitoPorSku.get(e.sku) || 0
+      const faltante   = Math.max(0, e.pendiente - stock - enTransito)
       if (faltante > 0) {
         productos.push({
           sku: e.sku, desc: e.desc,
           totalPedido: e.totalPedido,
-          pendiente: e.pendiente, stock, faltante,
+          pendiente: e.pendiente, stock, enTransito, faltante,
           pedidos: e.pedidos.size,
           proveedor: provMap.get(e.sku) || 'Sin proveedor',
         })
