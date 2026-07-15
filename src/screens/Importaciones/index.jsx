@@ -106,6 +106,12 @@ export default function Importaciones() {
           </button>
         </div>
 
+        {data?.ultimaSync && (
+          <p className={styles.emptyHint}>
+            📡 Datos de Laudus sincronizados: {new Date(data.ultimaSync).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })}
+          </p>
+        )}
+
         {error && (
           <div className="empty-state"><div className="emoji">⚠️</div><p>{error}</p></div>
         )}

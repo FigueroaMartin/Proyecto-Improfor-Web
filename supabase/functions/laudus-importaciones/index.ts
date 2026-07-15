@@ -1,24 +1,28 @@
 // supabase/functions/laudus-importaciones/index.ts
 // Análisis de importaciones: extrae las líneas PENDIENTES de todos los pedidos
-// de venta de Laudus (cubiertas parcialmente o sin documento), suma la demanda
-// por producto y la compara contra el stock actual (tabla productos en Supabase).
+// de venta y las compara contra el stock actual y lo ya pedido a proveedores.
 //
 //   faltante = max(0, demanda pendiente − stock actual − en tránsito del proveedor)
 //
-// "En tránsito" = lo que ya se le pidió al proveedor (purchases/orders) y
-// aún no ha llegado (no aparece recibido en purchases/waybills), para no
-// duplicar una importación que ya viene en camino.
+// IMPORTANTE: esta función NO consulta la API de Laudus. Todos los datos
+// (pedidos, facturas, guías, órdenes de compra, recepciones) ya están
+// materializados en Supabase por el cron `sync-laudus-ventas` (tablas
+// laudus_pedidos / laudus_facturas / laudus_guias / laudus_compras_ordenes /
+// laudus_compras_guias). Las consultas a Laudus quedan centralizadas solo
+// en ese cron para no golpear la API en cada clic de "Buscar".
+//
+// "En tránsito" = lo que ya se le pidió al proveedor (laudus_compras_ordenes)
+// y aún no ha llegado (no aparece recibido en laudus_compras_guias). El
+// cruce de compras es a nivel SKU porque las recepciones no traen traceFrom.
 //
 // Devuelve:
-//   • pedidos   → pedidos con al menos una línea cuyo producto tiene faltante
-//   • productos → cada producto con totalPedido / pendiente / stock / enTransito / faltante (a importar)
+//   • pedidos    → pedidos con al menos una línea cuyo producto tiene faltante
+//   • productos  → cada producto con totalPedido / pendiente / stock / enTransito / faltante (a importar)
+//   • yaPedidos  → todo lo que ya se le pidió al proveedor y sigue en camino
 //
 // Body opcional: { desde: "2026-04-01" }  (por defecto, últimos 60 días)
-// Requiere Secrets: LAUDUS_USERNAME, LAUDUS_PASSWORD, LAUDUS_COMPANY_VATID
 
 import { createClient } from 'jsr:@supabase/supabase-js@2'
-
-const LAUDUS_BASE = 'https://api.laudus.cl'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,46 +30,21 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-async function laudusLogin(): Promise<string> {
-  const userName     = Deno.env.get('LAUDUS_USERNAME')
-  const password     = Deno.env.get('LAUDUS_PASSWORD')
-  const companyVATId = Deno.env.get('LAUDUS_COMPANY_VATID')
-  if (!userName || !password || !companyVATId) {
-    throw new Error('Faltan los Secrets de Laudus.')
-  }
-  const r = await fetch(`${LAUDUS_BASE}/security/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify({ userName, password, companyVATId }),
-  })
-  if (!r.ok) throw new Error(`Login en Laudus fallo (HTTP ${r.status})`)
-  const data = await r.json()
-  if (!data?.token) throw new Error('Laudus no devolvio token.')
-  return data.token
-}
-
-async function listAll(token: string, path: string, fields: string[], idField: string, desde: string): Promise<any[]> {
-  const LIMIT = 500
-  let offset = 0
+async function selectAll(supabase: any, table: string, cols: string, dateCol: string, desdeTs: string): Promise<any[]> {
+  const PAGE = 1000
+  let from = 0
   const all: any[] = []
   while (true) {
-    const r = await fetch(`${LAUDUS_BASE}/${path}`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({
-        fields,
-        filterBy: [{ field: 'issuedDate', operator: '>=', value: desde }],
-        orderBy: [{ field: idField, direction: 'DESC' }],
-        options: { offset, limit: LIMIT },
-      }),
-    })
-    if (r.status === 204) break
-    if (!r.ok) throw new Error(`${path} fallo (HTTP ${r.status})`)
-    const rows = await r.json()
-    if (!Array.isArray(rows) || rows.length === 0) break
-    all.push(...rows)
-    if (rows.length < LIMIT) break
-    offset += LIMIT
+    const { data, error } = await supabase
+      .from(table)
+      .select(cols)
+      .gte(dateCol, desdeTs)
+      .range(from, from + PAGE - 1)
+    if (error) throw new Error(`${table}: ${error.message}`)
+    if (!data || data.length === 0) break
+    all.push(...data)
+    if (data.length < PAGE) break
+    from += PAGE
   }
   return all
 }
@@ -83,91 +62,96 @@ Deno.serve(async (req) => {
     }
     const desdeTs = `${desde}T00:00:00`
 
-    const token = await laudusLogin()
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    )
 
-    const [orderRows, invoiceRows, waybillRows, poRows, poWaybillRows] = await Promise.all([
-      listAll(token, 'sales/orders/list',
-        ['salesOrderId', 'issuedDate', 'nullDoc', 'customer.name',
-         'items.itemId', 'items.quantity', 'items.product.sku', 'items.product.description'],
-        'salesOrderId', desdeTs),
-      listAll(token, 'sales/invoices/list',
-        ['salesInvoiceId', 'nullDoc', 'issuedDate',
-         'items.quantity', 'items.traceFrom.fromId', 'items.traceFrom.fromStep'],
-        'salesInvoiceId', desdeTs),
-      listAll(token, 'sales/waybills/list',
-        ['salesWaybillId', 'nullDoc', 'issuedDate',
-         'items.quantity', 'items.traceFrom.fromId', 'items.traceFrom.fromStep'],
-        'salesWaybillId', desdeTs),
-      // Ordenes de compra a proveedores: lo que ya se pidió y aun no llega
-      // (se resta del faltante para no importar de más lo que ya viene en camino).
-      listAll(token, 'purchases/orders/list',
-        ['purchaseOrderId', 'issuedDate', 'nullDoc', 'supplier.name',
-         'items.itemId', 'items.quantity', 'items.product.sku', 'items.product.description'],
-        'purchaseOrderId', desdeTs),
-      listAll(token, 'purchases/waybills/list',
-        ['purchaseWaybillId', 'nullDoc', 'issuedDate',
-         'items.quantity', 'items.traceFrom.fromId', 'items.traceFrom.fromStep'],
-        'purchaseWaybillId', desdeTs),
+    const [pedidosRows, facturasRows, guiasRows, poRows, prRows, syncRow] = await Promise.all([
+      selectAll(supabase, 'laudus_pedidos',         'sales_order_id, issued_date, customer, null_doc, items', 'issued_date', desdeTs),
+      selectAll(supabase, 'laudus_facturas',        'sales_invoice_id, null_doc, items',                      'issued_date', desdeTs),
+      selectAll(supabase, 'laudus_guias',           'sales_waybill_id, null_doc, items',                      'issued_date', desdeTs),
+      selectAll(supabase, 'laudus_compras_ordenes', 'purchase_order_id, supplier, null_doc, items',           'issued_date', desdeTs),
+      selectAll(supabase, 'laudus_compras_guias',   'purchase_waybill_id, null_doc, items',                   'issued_date', desdeTs),
+      supabase.from('laudus_pedidos').select('synced_at').order('synced_at', { ascending: false }).limit(1).maybeSingle(),
     ])
 
-    // Agrupar órdenes
+    // Agrupar pedidos de venta
     const ordersMap = new Map<number, any>()
-    for (const row of orderRows) {
-      if (row.nullDoc) continue
-      let o = ordersMap.get(row.salesOrderId)
-      if (!o) {
-        o = { salesOrderId: row.salesOrderId, issuedDate: row.issuedDate, customer: row.customer_name || '', items: [] }
-        ordersMap.set(row.salesOrderId, o)
-      }
-      o.items.push({
-        itemId: row.items_itemId,
-        qty:    Number(row.items_quantity) || 0,
-        sku:    row.items_product_sku || '',
-        desc:   row.items_product_description || '',
+    for (const row of pedidosRows) {
+      if (row.null_doc) continue
+      ordersMap.set(row.sales_order_id, {
+        salesOrderId: row.sales_order_id,
+        issuedDate:   row.issued_date,
+        customer:     row.customer || '',
+        items: (row.items || []).map((it: any) => ({
+          itemId: it.itemId, qty: Number(it.qty) || 0, sku: it.sku || '', desc: it.desc || '',
+        })),
       })
     }
 
     // Cobertura por línea (guía manda; si no hay, factura)
     const invQty = new Map<number, number>()
-    for (const row of invoiceRows) {
-      if (row.nullDoc || row.items_traceFrom_fromStep !== 'O') continue
-      const id = row.items_traceFrom_fromId
-      invQty.set(id, (invQty.get(id) || 0) + (Number(row.items_quantity) || 0))
+    for (const row of facturasRows) {
+      if (row.null_doc) continue
+      for (const it of row.items || []) {
+        if (it.traceFromStep !== 'O') continue
+        invQty.set(it.traceFromId, (invQty.get(it.traceFromId) || 0) + (Number(it.qty) || 0))
+      }
     }
     const wbQty = new Map<number, number>()
-    for (const row of waybillRows) {
-      if (row.nullDoc || row.items_traceFrom_fromStep !== 'O') continue
-      const id = row.items_traceFrom_fromId
-      wbQty.set(id, (wbQty.get(id) || 0) + (Number(row.items_quantity) || 0))
+    for (const row of guiasRows) {
+      if (row.null_doc) continue
+      for (const it of row.items || []) {
+        if (it.traceFromStep !== 'O') continue
+        wbQty.set(it.traceFromId, (wbQty.get(it.traceFromId) || 0) + (Number(it.qty) || 0))
+      }
     }
 
     // ── Órdenes de compra a proveedores: cuánto sigue "en camino" por SKU ──
-    // (traceFrom.fromStep '2' identifica que la guía de recepción viene de
-    //  una orden de compra, análogo a 'O' en el lado de ventas)
-    const poRecibidoPorItem = new Map<number, number>()
-    for (const row of poWaybillRows) {
-      if (row.nullDoc || row.items_traceFrom_fromStep !== '2') continue
-      const id = row.items_traceFrom_fromId
-      poRecibidoPorItem.set(id, (poRecibidoPorItem.get(id) || 0) + (Number(row.items_quantity) || 0))
-    }
-    const enTransitoPorSku = new Map<string, number>()
-    const yaPedidosPorSku  = new Map<string, any>()   // detalle completo, incluso si ya cubre el faltante
-    for (const row of poRows) {
-      if (row.nullDoc || !row.items_product_sku) continue
-      const qty      = Number(row.items_quantity) || 0
-      const recibido = poRecibidoPorItem.get(row.items_itemId) || 0
-      const pendCompra = Math.max(0, qty - recibido)
-      if (pendCompra > 0) {
-        const sku = row.items_product_sku
-        enTransitoPorSku.set(sku, (enTransitoPorSku.get(sku) || 0) + pendCompra)
-        const e = yaPedidosPorSku.get(sku) || {
-          sku, desc: row.items_product_description || '', cantidad: 0,
-          proveedor: row.supplier_name || 'Sin proveedor', ordenes: new Set<number>(),
-        }
-        e.cantidad += pendCompra
-        e.ordenes.add(row.purchaseOrderId)
-        yaPedidosPorSku.set(sku, e)
+    // (cruce a nivel SKU: las recepciones materializadas no traen traceFrom)
+    const recibidoPorSku = new Map<string, number>()
+    for (const row of prRows) {
+      if (row.null_doc) continue
+      for (const it of row.items || []) {
+        if (!it.sku) continue
+        recibidoPorSku.set(it.sku, (recibidoPorSku.get(it.sku) || 0) + (Number(it.qty) || 0))
       }
+    }
+    const pedidoCompraPorSku = new Map<string, number>()   // total pedido al proveedor, sin descontar recibido
+    const enTransitoPorSku   = new Map<string, number>()
+    const yaPedidosPorSku    = new Map<string, any>()
+    for (const row of poRows) {
+      if (row.null_doc) continue
+      for (const it of row.items || []) {
+        if (!it.sku) continue
+        pedidoCompraPorSku.set(it.sku, (pedidoCompraPorSku.get(it.sku) || 0) + (Number(it.qty) || 0))
+      }
+    }
+    for (const [sku, pedidoTotal] of pedidoCompraPorSku) {
+      const recibido = recibidoPorSku.get(sku) || 0
+      const pend = Math.max(0, pedidoTotal - recibido)
+      if (pend > 0) enTransitoPorSku.set(sku, pend)
+    }
+    // Detalle (desc/proveedor/nro de órdenes) para la columna "Ya pedidos"
+    const skuOrdenes = new Map<string, Set<number>>()
+    const skuDescProv = new Map<string, { desc: string, proveedor: string }>()
+    for (const row of poRows) {
+      if (row.null_doc) continue
+      for (const it of row.items || []) {
+        if (!it.sku) continue
+        const set = skuOrdenes.get(it.sku) || new Set<number>()
+        set.add(row.purchase_order_id)
+        skuOrdenes.set(it.sku, set)
+        if (!skuDescProv.has(it.sku)) skuDescProv.set(it.sku, { desc: it.desc || '', proveedor: row.supplier || 'Sin proveedor' })
+      }
+    }
+    for (const [sku, cantidad] of enTransitoPorSku) {
+      const meta = skuDescProv.get(sku) || { desc: '', proveedor: 'Sin proveedor' }
+      yaPedidosPorSku.set(sku, {
+        sku, desc: meta.desc, cantidad, proveedor: meta.proveedor,
+        ordenes: skuOrdenes.get(sku)?.size || 0,
+      })
     }
 
     // Todas las líneas por pedido (para el detalle) + demanda agregada por SKU
@@ -204,10 +188,6 @@ Deno.serve(async (req) => {
     }
 
     // Stock actual desde Supabase (productos sincronizados de Laudus)
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    )
     const skus = [...porSku.keys()]
     const stockMap = new Map<string, number>()
     const provMap  = new Map<string, string>()
@@ -257,9 +237,7 @@ Deno.serve(async (req) => {
 
     // Cuarta columna: todo lo que ya se le pidió al proveedor y sigue en
     // camino (independiente de si ya cubre o no el faltante del cliente).
-    const yaPedidos = [...yaPedidosPorSku.values()]
-      .map(e => ({ sku: e.sku, desc: e.desc, cantidad: e.cantidad, proveedor: e.proveedor, ordenes: e.ordenes.size }))
-      .sort((a, b) => b.cantidad - a.cantidad)
+    const yaPedidos = [...yaPedidosPorSku.values()].sort((a, b) => b.cantidad - a.cantidad)
 
     // Pedidos afectados: con al menos una línea pendiente cuyo producto tiene faltante.
     // Cada línea lleva sinStock=true si su pendiente no se cubre con el stock actual.
@@ -278,6 +256,7 @@ Deno.serve(async (req) => {
       ok: true,
       desde,
       durationMs: Date.now() - started,
+      ultimaSync: syncRow?.data?.synced_at || null,
       resumen: {
         pedidosConFaltantes: pedidos.length,
         productosFaltantes:  productos.length,
