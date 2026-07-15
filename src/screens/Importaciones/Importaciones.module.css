@@ -58,8 +58,8 @@
   align-items: start;
 }
 @media (min-width: 760px)  { .columnas { grid-template-columns: 1fr 1fr; } }
-@media (min-width: 1120px) { .columnas { grid-template-columns: 1fr 1fr 1fr; } }
-@media (min-width: 1480px) { .columnas { grid-template-columns: 1fr 1fr 1fr 1fr; } }
+@media (min-width: 1000px) { .columnas { grid-template-columns: 1fr 1fr 1fr; } }
+@media (min-width: 1200px) { .columnas { grid-template-columns: 1fr 1fr 1fr 1fr; } }
 
 /* Buscador por columna */
 .colSearch {
