@@ -169,3 +169,14 @@ a {
 }
 .empty-state .emoji { font-size: 48px; margin-bottom: 12px; }
 .empty-state p { font-size: 15px; font-weight: 500; }
+
+/* ─── Impresión ──────────────────────────────────────────────────────────────
+   Oculta todo el chrome de la app (header, sidebar, controles de búsqueda) y
+   deja visible solo el documento marcado con id="printArea", sin importar
+   dónde viva ese nodo en el árbol (Sidebar/Header quedan fuera de la pantalla
+   que renderiza el documento). */
+@media print {
+  body * { visibility: hidden; }
+  #printArea, #printArea * { visibility: visible; }
+  #printArea { position: absolute; top: 0; left: 0; width: 100%; }
+}

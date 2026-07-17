@@ -39,4 +39,11 @@ export const NAV_ITEMS = {
     ruta:  '/pedidos',
     color: 'var(--accent)',
   },
+  impresion_pedido: {
+    emoji: '🖨️',
+    label: 'Impresión de pedido',
+    desc:  'Probar el formato de impresión de un pedido',
+    ruta:  '/impresion-pedido',
+    color: 'var(--muted)',
+  },
 }

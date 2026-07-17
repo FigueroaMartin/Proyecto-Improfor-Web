@@ -155,6 +155,38 @@ export const getPedidoById = async (id) => {
   }
 }
 
+// Pedido enriquecido para el documento imprimible: junto a lo que ya guarda
+// `pedidos`/`items_pedido`, intenta completar RUT del cliente y precio
+// unitario cruzando con `laudus_pedidos` (si el pedido vino de Laudus).
+// Lo que no se puede completar queda en null — el formato lo imprime en blanco.
+export const getPedidoParaImprimir = async (id) => {
+  const pedido = await getPedidoById(id)
+  if (!pedido) return null
+
+  let clienteRut = null
+  const precioPorSku = new Map()
+  if (pedido.laudus_order_id) {
+    const { data } = await supabase
+      .from('laudus_pedidos')
+      .select('customer_vatid, items')
+      .eq('sales_order_id', pedido.laudus_order_id)
+      .maybeSingle()
+    if (data) {
+      clienteRut = data.customer_vatid || null
+      for (const it of data.items || []) {
+        if (it.sku) precioPorSku.set(it.sku, Number(it.unitPrice) || 0)
+      }
+    }
+  }
+
+  const items = pedido.items.map(it => ({
+    ...it,
+    precio_unit: precioPorSku.has(it.producto_codigo) ? precioPorSku.get(it.producto_codigo) : null,
+  }))
+
+  return { ...pedido, items, cliente_rut: clienteRut }
+}
+
 export const insertPedido = async (pedido) => {
   const numero = await generarNumeroPedido()
   const { data, error } = await supabase

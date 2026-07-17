@@ -29,7 +29,7 @@ export const ROLES = {
     emoji: '📦',
     color: '#000000',
     bg:    '#F1F1F1',
-    pantallas: ['pedidos', 'inventario'],
+    pantallas: ['pedidos', 'inventario', 'impresion_pedido'],
   },
 }
 
