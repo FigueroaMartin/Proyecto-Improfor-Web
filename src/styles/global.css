@@ -75,9 +75,10 @@ a {
 }
 
 /* Menú lateral (Sidebar, solo escritorio) — empuja el contenido a la derecha
-   del ancho fijo del menú en vez de quedar tapado debajo. */
+   del ancho del menú (variable, según esté expandido o colapsado) en vez de
+   quedar tapado debajo. --sidebar-w la fija el propio Sidebar. */
 @media (min-width: 900px) {
-  .shell-con-sidebar { padding-left: 240px; }
+  .shell-con-sidebar { padding-left: var(--sidebar-w, 240px); transition: padding-left 0.2s; }
 }
 
 /* ─── Utilidades globales ────────────────────────────────────────────────────── */

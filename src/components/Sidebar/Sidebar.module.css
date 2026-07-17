@@ -8,30 +8,49 @@
     flex-direction: column;
     position: fixed;
     top: 0; left: 0; bottom: 0;
-    width: 240px;
+    width: var(--sidebar-w, 240px);
     background: var(--brand);
     padding: 20px 14px;
     gap: 14px;
     z-index: 200;
     overflow-y: auto;
+    overflow-x: hidden;
+    transition: width 0.2s;
   }
 }
+
+.colapsado { padding: 20px 10px; align-items: center; }
 
 .brand {
   display: flex; align-items: center; gap: 8px;
   padding: 0 6px;
+  width: 100%;
 }
-.brandEmoji { font-size: 22px; }
-.brandTitle { font-size: 18px; font-weight: 800; color: #fff; letter-spacing: -0.3px; }
+.colapsado .brand { flex-direction: column; padding: 0; }
+.brandEmoji { font-size: 22px; flex-shrink: 0; }
+.brandTitle { font-size: 18px; font-weight: 800; color: #fff; letter-spacing: -0.3px; flex: 1; white-space: nowrap; }
+
+.toggleBtn {
+  margin-left: auto;
+  width: 24px; height: 24px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px;
+  color: rgba(255,255,255,0.8);
+  font-size: 14px; font-weight: 800;
+  transition: background 0.15s, color 0.15s;
+}
+.toggleBtn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.colapsado .toggleBtn { margin-left: 0; }
 
 .rolBadge {
   align-self: flex-start;
   font-size: 11px; font-weight: 700;
   border-radius: 20px; padding: 4px 10px;
   margin: 0 6px 4px;
+  white-space: nowrap;
 }
 
-.items { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.items { display: flex; flex-direction: column; gap: 4px; flex: 1; width: 100%; }
 
 .item {
   display: flex; align-items: center; gap: 10px;
@@ -40,21 +59,25 @@
   font-size: 14px; font-weight: 600;
   color: rgba(255,255,255,0.82);
   text-align: left;
+  white-space: nowrap;
   transition: background 0.15s, color 0.15s;
 }
+.colapsado .item { justify-content: center; padding: 10px; }
 .item:hover  { background: rgba(255,255,255,0.1); color: #fff; }
 .itemActive {
   background: #fff;
   color: var(--brand);
 }
 .itemActive:hover { background: #fff; color: var(--brand); }
-.itemEmoji { font-size: 17px; line-height: 1; }
+.itemEmoji { font-size: 17px; line-height: 1; flex-shrink: 0; }
 
 .userBox {
   display: flex; flex-direction: column; gap: 8px;
   padding: 12px 6px 0;
   border-top: 1px solid rgba(255,255,255,0.18);
+  width: 100%;
 }
+.colapsado .userBox { align-items: center; padding: 12px 0 0; }
 .userName {
   font-size: 12px; font-weight: 600;
   color: rgba(255,255,255,0.75);
@@ -67,6 +90,8 @@
   border-radius: 8px;
   padding: 8px 10px;
   font-size: 13px; font-weight: 700;
+  white-space: nowrap;
   transition: background 0.15s;
 }
+.colapsado .logoutBtn { padding: 8px; width: 40px; text-align: center; }
 .logoutBtn:hover { background: rgba(255,255,255,0.28); }
