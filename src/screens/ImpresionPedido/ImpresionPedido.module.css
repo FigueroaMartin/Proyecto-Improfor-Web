@@ -44,28 +44,84 @@
   display: flex; align-items: flex-start; justify-content: space-between;
   gap: 20px; margin-bottom: 14px;
 }
-.empresa    { font-size: 13px; font-weight: 700; }
-.empresaRut { font-size: 12px; margin-top: 2px; }
-.pedidoNum  { font-size: 16px; font-weight: 700; white-space: nowrap; }
+.empresa    { font-size: 13px; font-style: italic; }
+.empresaRut { font-size: 12px; font-style: italic; margin-top: 2px; }
+.pedidoNumBox { text-align: right; }
+.pedidoNum  { font-size: 19px; font-weight: 700; white-space: nowrap; }
+.iniciales  { font-size: 10px; color: #555; margin-top: 2px; }
+
+/* ── Formulario de datos (imita la hoja física: etiqueta chica arriba,
+   valor abajo, todo dentro de una única grilla con bordes) ── */
+.formBox {
+  border: 1px solid #666;
+  border-bottom: none;
+  margin-bottom: 0;
+}
+.grid12 {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+}
+.field {
+  border-right: 1px solid #999;
+  border-bottom: 1px solid #999;
+  padding: 3px 6px 4px;
+  min-height: 32px;
+  overflow: hidden;
+}
+.lbl {
+  font-size: 8px;
+  font-weight: 700;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.val {
+  font-size: 12px;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.seccion { display: flex; }
+.vertLabel {
+  flex-shrink: 0;
+  width: 14px;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #555;
+  border-right: 1px solid #999;
+  border-bottom: 1px solid #999;
+}
+.seccion .grid12 { flex: 1; }
+
+.notasBox {
+  flex: 1;
+  min-height: 34px;
+  padding: 6px 8px;
+  font-size: 12px;
+  border-bottom: 1px solid #999;
+}
+.notasResaltado { background: #fff4b8; }
 
 .infoTabla, .itemsTabla {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 12px;
 }
+.itemsTabla { margin-top: 14px; }
 .infoTabla td, .itemsTabla th, .itemsTabla td {
   border: 1px solid #999;
   padding: 5px 8px;
   font-size: 11.5px;
   vertical-align: top;
 }
-.infoTabla .lbl {
-  font-weight: 700;
-  background: #f2f2f2;
-  width: 1%;
-  white-space: nowrap;
-}
-.notasResaltado { background: #fff4b8; }
 
 .itemsTabla thead th {
   background: #f2f2f2;

@@ -12,9 +12,20 @@ const fmtFechaHora = (str) => {
 }
 
 const fmtPlata = (n) => n == null ? '' : Math.round(n).toLocaleString('es-CL')
+const fmtPrecioUnit = (n) => n == null ? '' : n.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-const ENTREGA_LABEL = {
+const DESPACHADOR_LABEL = {
   salida_bodega: 'Salida de bodega (SV)',
+}
+
+// Campo del formulario: etiqueta arriba (chica, gris) + valor abajo.
+function Campo({ label, valor, span = 1 }) {
+  return (
+    <div className={styles.field} style={{ gridColumn: `span ${span}` }}>
+      <div className={styles.lbl}>{label}</div>
+      <div className={styles.val}>{valor || ''}</div>
+    </div>
+  )
 }
 
 export default function ImpresionPedido() {
@@ -65,8 +76,8 @@ export default function ImpresionPedido() {
   const iva = hayPrecios ? Math.round(totalNeto * 0.19) : null
   const totalConIva = hayPrecios ? totalNeto + iva : null
 
-  const entregaTexto = pedido
-    ? (ENTREGA_LABEL[pedido.tipo_despacho] || pedido.carrier || '')
+  const despachadorTexto = pedido
+    ? (DESPACHADOR_LABEL[pedido.tipo_despacho] || pedido.carrier || '')
     : ''
 
   return (
@@ -119,67 +130,57 @@ export default function ImpresionPedido() {
               <div className={styles.empresa}>Sociedad de Importación y Exportación Improfor Limitada</div>
               <div className={styles.empresaRut}>RUT: 77.127.510-9</div>
             </div>
-            <div className={styles.pedidoNum}>
-              Pedido N° <strong>{pedido.numero_pedido}</strong>
+            <div className={styles.pedidoNumBox}>
+              <div className={styles.pedidoNum}>Pedido N° <strong>{pedido.numero_pedido}</strong></div>
+              <div className={styles.iniciales}>{pedido.bodeguero_nombre ? pedido.bodeguero_nombre.split(' ').map(w => w[0]).join('').slice(0, 3).toUpperCase() : ''}</div>
             </div>
           </div>
 
-          <table className={styles.infoTabla}>
-            <tbody>
-              <tr>
-                <td className={styles.lbl}>Cliente</td>
-                <td colSpan={3}>{pedido.cliente_nombre || ''}</td>
-                <td className={styles.lbl}>RUT</td>
-                <td>{pedido.cliente_rut || ''}</td>
-              </tr>
-              <tr>
-                <td className={styles.lbl}>Contacto</td>
-                <td></td>
-                <td className={styles.lbl}>Teléfono contacto</td>
-                <td></td>
-                <td className={styles.lbl}>Vendedor</td>
-                <td></td>
-              </tr>
-              <tr>
-                <td className={styles.lbl}>Forma de pago</td>
-                <td></td>
-                <td className={styles.lbl}>OC</td>
-                <td></td>
-                <td className={styles.lbl}>Cotización</td>
-                <td></td>
-              </tr>
-              <tr>
-                <td className={styles.lbl}>Verificador</td>
-                <td>{pedido.bodeguero_nombre || ''}</td>
-                <td className={styles.lbl}>Previsto</td>
-                <td></td>
-                <td className={styles.lbl}>Entrega</td>
-                <td>{entregaTexto}</td>
-              </tr>
-              <tr>
-                <td className={styles.lbl}>Fecha/Hora</td>
-                <td>{fmtFechaHora(pedido.creado_en)}</td>
-                <td className={styles.lbl}>Dirección</td>
-                <td></td>
-                <td className={styles.lbl}>Comuna</td>
-                <td></td>
-              </tr>
-              <tr>
-                <td className={styles.lbl}>Ciudad</td>
-                <td></td>
-                <td className={styles.lbl}>País</td>
-                <td></td>
-                <td className={styles.lbl}>Email</td>
-                <td></td>
-              </tr>
-              <tr>
-                <td className={styles.lbl}>Notas</td>
-                <td colSpan={5} className={pedido.notas_admin ? styles.notasResaltado : ''}>
-                  {pedido.notas_admin || ''}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <div className={styles.formBox}>
+            {/* ── Datos generales del pedido ── */}
+            <div className={styles.grid12}>
+              <Campo label="Cliente"  valor={pedido.cliente_nombre} span={5} />
+              <Campo label="RUT"      valor={pedido.cliente_rut}    span={3} />
+              <Campo label="Fecha/Hora" valor={fmtFechaHora(pedido.creado_en)} span={4} />
+
+              <Campo label="Razón Social" valor={null} span={5} />
+              <Campo label="Contacto"     valor={null} span={3} />
+              <Campo label="Teléfono contacto" valor={null} span={2} />
+              <Campo label="Vendedor"     valor={null} span={2} />
+
+              <Campo label="Forma de pago" valor={null} span={5} />
+              <Campo label="O/C"          valor={null} span={3} />
+              <Campo label="Cotización"   valor={null} span={4} />
+            </div>
+
+            {/* ── Bloque Entrega (con etiqueta lateral, como la hoja física) ── */}
+            <div className={styles.seccion}>
+              <div className={styles.vertLabel}>Entrega</div>
+              <div className={styles.grid12}>
+                <Campo label="Despachador" valor={despachadorTexto} span={5} />
+                <Campo label="Previsto"    valor={null} span={2} />
+                <Campo label="Entrega"     valor={null} span={2} />
+                <Campo label="Teléfono"    valor={null} span={3} />
+
+                <Campo label="Dirección" valor={null} span={7} />
+                <Campo label="Comuna"    valor={null} span={3} />
+                <Campo label="Email"     valor={null} span={2} />
+
+                <Campo label="Ciudad" valor={null} span={6} />
+                <Campo label="País"   valor={null} span={6} />
+
+                <Campo label="Notas" valor={null} span={12} />
+              </div>
+            </div>
+
+            {/* ── Notas generales del pedido (resaltadas si hay contenido) ── */}
+            <div className={styles.seccion}>
+              <div className={styles.vertLabel}>Notas</div>
+              <div className={`${styles.notasBox} ${pedido.notas_admin ? styles.notasResaltado : ''}`}>
+                {pedido.notas_admin || ''}
+              </div>
+            </div>
+          </div>
 
           <table className={styles.itemsTabla}>
             <thead>
@@ -201,7 +202,7 @@ export default function ImpresionPedido() {
                   <td></td>
                   <td>{it.producto_nombre || ''}</td>
                   <td className={styles.right}>{it.cantidad_pedida}</td>
-                  <td className={styles.right}>{fmtPlata(it.precio_unit)}</td>
+                  <td className={styles.right}>{fmtPrecioUnit(it.precio_unit)}</td>
                   <td className={styles.right}>{it.precio_unit != null ? fmtPlata(it.precio_unit * it.cantidad_pedida) : ''}</td>
                 </tr>
               ))}
