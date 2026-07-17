@@ -64,8 +64,7 @@
 .field {
   border-right: 1px solid #999;
   border-bottom: 1px solid #999;
-  padding: 3px 6px 4px;
-  min-height: 32px;
+  padding: 2px 6px 3px;
   overflow: hidden;
 }
 .lbl {
@@ -74,11 +73,13 @@
   color: #666;
   text-transform: uppercase;
   letter-spacing: 0.3px;
+  line-height: 1.2;
   white-space: nowrap;
 }
 .val {
-  font-size: 12px;
-  margin-top: 1px;
+  font-size: 11px;
+  line-height: 1.35;
+  min-height: 14px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
