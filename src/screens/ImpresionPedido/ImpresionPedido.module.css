@@ -54,7 +54,6 @@
    valor abajo, todo dentro de una única grilla con bordes) ── */
 .formBox {
   border: 1px solid #666;
-  border-bottom: none;
   margin-bottom: 0;
 }
 .grid12 {
