@@ -19,13 +19,22 @@ const DESPACHADOR_LABEL = {
 }
 
 // Campo del formulario: etiqueta arriba (chica, gris) + valor abajo.
+// Vacío cuando el dato no existe en Supabase (no se inventa nada).
 function Campo({ label, valor, span = 1 }) {
   return (
     <div className={styles.field} style={{ gridColumn: `span ${span}` }}>
       <div className={styles.lbl}>{label}</div>
-      <div className={styles.val}>{valor || ''}</div>
+      <div className={styles.val}>{valor ?? ''}</div>
     </div>
   )
+}
+
+// Iniciales del bodeguero (aproxima el "L.G." de la hoja física). Filtra
+// espacios dobles/extremos para no colar un "undefined" si algún nombre
+// viene con espacios raros.
+const iniciales = (nombre) => {
+  if (!nombre) return ''
+  return nombre.trim().split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 3).toUpperCase()
 }
 
 export default function ImpresionPedido() {
@@ -93,7 +102,7 @@ export default function ImpresionPedido() {
             onChange={e => setQ(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && buscar()}
           />
-          <button className="btn-primary" onClick={buscar} disabled={buscando} style={{ width: 'auto', padding: '10px 18px' }}>
+          <button className={`btn-primary ${styles.btnAuto}`} onClick={buscar} disabled={buscando}>
             {buscando ? 'Buscando…' : 'Buscar'}
           </button>
         </div>
@@ -116,7 +125,7 @@ export default function ImpresionPedido() {
         {pedido && (
           <div className={styles.accionesDoc}>
             <button className="btn-outline" onClick={() => setPedido(null)}>‹ Elegir otro pedido</button>
-            <button className="btn-primary" onClick={() => window.print()} style={{ width: 'auto', padding: '10px 18px' }}>
+            <button className={`btn-primary ${styles.btnAuto}`} onClick={() => window.print()}>
               🖨️ Imprimir
             </button>
           </div>
@@ -132,7 +141,7 @@ export default function ImpresionPedido() {
             </div>
             <div className={styles.pedidoNumBox}>
               <div className={styles.pedidoNum}>Pedido N° <strong>{pedido.numero_pedido}</strong></div>
-              <div className={styles.iniciales}>{pedido.bodeguero_nombre ? pedido.bodeguero_nombre.split(' ').map(w => w[0]).join('').slice(0, 3).toUpperCase() : ''}</div>
+              <div className={styles.iniciales}>{iniciales(pedido.bodeguero_nombre)}</div>
             </div>
           </div>
 

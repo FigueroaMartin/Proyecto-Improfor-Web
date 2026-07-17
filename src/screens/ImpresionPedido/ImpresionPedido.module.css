@@ -8,6 +8,7 @@
 }
 
 .buscador { display: flex; gap: 8px; }
+.btnAuto  { width: auto; padding: 10px 18px; }
 
 .lista { display: flex; flex-direction: column; gap: 8px; }
 .resultado {
@@ -111,13 +112,13 @@
 }
 .notasResaltado { background: #fff4b8; }
 
-.infoTabla, .itemsTabla {
+.itemsTabla {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 12px;
+  margin-top: 14px;
 }
-.itemsTabla { margin-top: 14px; }
-.infoTabla td, .itemsTabla th, .itemsTabla td {
+.itemsTabla th, .itemsTabla td {
   border: 1px solid #999;
   padding: 5px 8px;
   font-size: 11.5px;
