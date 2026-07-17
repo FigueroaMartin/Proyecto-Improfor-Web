@@ -2,6 +2,14 @@
 // Materializa VENTAS (pedidos/facturas/guias) y COMPRAS (ordenes de compra +
 // recepciones/goods receipts) de Laudus. Cron lun-vie 9-17:30 hora Chile.
 // El cruce compras es a nivel SKU (el /list de recepciones no expone traceFrom).
+//
+// Ademas, para los pedidos NUEVOS o MODIFICADOS desde la ultima sync, trae el
+// objeto completo del pedido (GET sales/orders/{id}, sin filtro de fields) y
+// del cliente (GET sales/customers/{id}, cacheado por corrida) y los guarda
+// en laudus_pedidos.detalle. Son llamadas extra (1 por pedido nuevo/cambiado
+// + 1 por cliente distinto), acotadas por MAX_DETALLE para no disparar el
+// tiempo de la funcion si hay muchos pedidos pendientes de un solo golpe.
+//
 // Body opcional: { dias: 90, diasCompras: 365 }
 
 import { createClient } from 'jsr:@supabase/supabase-js@2'
@@ -70,6 +78,27 @@ async function upsertChunks(supabase: any, tabla: string, rows: any[], onConflic
   }
 }
 
+async function fetchJson(token: string, path: string): Promise<any> {
+  const r = await fetch(`${LAUDUS_BASE}/${path}`, {
+    method: 'GET',
+    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+  })
+  if (!r.ok) throw new Error(`${path} HTTP ${r.status}`)
+  return r.json()
+}
+
+// Corre `tasks` con a lo mas `limite` promesas en vuelo a la vez.
+async function conPool<T>(items: T[], limite: number, fn: (item: T) => Promise<void>) {
+  let i = 0
+  const workers = Array.from({ length: Math.min(limite, items.length) }, async () => {
+    while (i < items.length) {
+      const item = items[i++]
+      await fn(item)
+    }
+  })
+  await Promise.all(workers)
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   const started = new Date().toISOString()
@@ -91,7 +120,7 @@ Deno.serve(async (req) => {
 
     const [orderRows, invoiceRows, waybillRows, poRows, prRows] = await Promise.all([
       listAll(token, 'sales/orders/list', [
-        'salesOrderId', 'issuedDate', 'nullDoc', 'customer.name', 'customer.VATId',
+        'salesOrderId', 'issuedDate', 'nullDoc', 'modifiedAt', 'customer.name', 'customer.VATId',
         'items.itemId', 'items.quantity', 'items.product.sku', 'items.product.description',
         'items.unitPrice', 'items.discountPercentage',
       ], 'salesOrderId', desde),
@@ -116,10 +145,12 @@ Deno.serve(async (req) => {
     ])
 
     const pedMap = new Map<number, any>()
+    const modifiedAtByOrder = new Map<number, string>()
     for (const row of orderRows) {
       let o = pedMap.get(row.salesOrderId)
       if (!o) { o = { sales_order_id: row.salesOrderId, issued_date: row.issuedDate || null, customer: row.customer_name || '', customer_vatid: row.customer_VATId || '', null_doc: !!row.nullDoc, items: [], synced_at: nowIso }; pedMap.set(row.salesOrderId, o) }
       if (row.items_itemId != null) o.items.push({ itemId: row.items_itemId, qty: Number(row.items_quantity) || 0, sku: row.items_product_sku || '', desc: row.items_product_description || '', unitPrice: Number(row.items_unitPrice) || 0, discount: Number(row.items_discountPercentage) || 0 })
+      if (row.modifiedAt) modifiedAtByOrder.set(row.salesOrderId, row.modifiedAt)
     }
     const facMap = new Map<string, any>()
     for (const row of invoiceRows) {
@@ -149,13 +180,80 @@ Deno.serve(async (req) => {
     const pedidos = [...pedMap.values()], facturas = [...facMap.values()], guias = [...guiMap.values()]
     const ordenesC = [...poMap.values()], recepciones = [...prMap.values()]
 
+    // ── Detalle completo (pedido + cliente) para lo nuevo/modificado ──
+    // Se compara contra el modifiedAt guardado en la ultima corrida
+    // (detalle->>'modifiedAt'); si no hay detalle o cambio, se trae de nuevo.
+    const MAX_DETALLE = 200
+    const CONCURRENCIA_DETALLE = 5
+    let detalleFetched = 0
+    let detalleCapeados = 0
+    try {
+      const idsConDatos = pedidos.map(p => p.sales_order_id)
+      const existentes = new Map<number, { tieneDetalle: boolean, modAt: string | null }>()
+      for (let i = 0; i < idsConDatos.length; i += 500) {
+        const chunk = idsConDatos.slice(i, i + 500)
+        const { data, error } = await supabase
+          .from('laudus_pedidos')
+          .select('sales_order_id, detalle')
+          .in('sales_order_id', chunk)
+        if (error) throw new Error(`leer detalle existente: ${error.message}`)
+        for (const row of data || []) {
+          existentes.set(row.sales_order_id, { tieneDetalle: row.detalle != null, modAt: row.detalle?.modifiedAt ?? null })
+        }
+      }
+
+      // Pendiente si: nunca se guardó, o se guardó pero sin detalle todavia,
+      // o el modifiedAt de Laudus cambió desde la ultima vez que se trajo.
+      // (ojo: comparar solo modifiedAt no alcanza — un pedido nunca editado
+      // tiene modifiedAt null tanto en Laudus como en lo ya guardado, y esa
+      // igualdad null===null no debe confundirse con "ya tiene detalle".)
+      const pendientes = pedidos.filter(p => {
+        const modAt = modifiedAtByOrder.get(p.sales_order_id) ?? null
+        const info = existentes.get(p.sales_order_id)
+        return !info || !info.tieneDetalle || info.modAt !== modAt
+      })
+      const aProcesar = pendientes.slice(0, MAX_DETALLE)
+      detalleCapeados = Math.max(0, pendientes.length - aProcesar.length)
+
+      const pedidoPorId = new Map(pedidos.map(p => [p.sales_order_id, p]))
+      const clienteCache = new Map<number, any>()
+
+      await conPool(aProcesar, CONCURRENCIA_DETALLE, async (p) => {
+        const orderFull = await fetchJson(token, `sales/orders/${p.sales_order_id}`)
+        const customerId = orderFull?.customer?.customerId
+        let clienteFull: any = null
+        if (customerId != null) {
+          if (clienteCache.has(customerId)) {
+            clienteFull = clienteCache.get(customerId)
+          } else {
+            clienteFull = await fetchJson(token, `sales/customers/${customerId}`).catch(() => null)
+            clienteCache.set(customerId, clienteFull)
+          }
+        }
+        const destino = pedidoPorId.get(p.sales_order_id)
+        if (destino) {
+          destino.detalle = { ...orderFull, customerDetalle: clienteFull }
+          detalleFetched++
+        }
+      })
+    } catch (e) {
+      // El detalle completo es un enriquecimiento best-effort: si falla, se
+      // sigue con la sync normal (columnas ya existentes) sin cortar todo.
+      console.error('Detalle completo de pedidos fallo:', (e as Error)?.message ?? e)
+    }
+
     await upsertChunks(supabase, 'laudus_pedidos',         pedidos,     'sales_order_id')
     await upsertChunks(supabase, 'laudus_facturas',        facturas,    'sales_invoice_id')
     await upsertChunks(supabase, 'laudus_guias',           guias,       'sales_waybill_id')
     await upsertChunks(supabase, 'laudus_compras_ordenes', ordenesC,    'purchase_order_id')
     await upsertChunks(supabase, 'laudus_compras_guias',   recepciones, 'purchase_waybill_id')
 
-    const detalle = { pedidos: pedidos.length, facturas: facturas.length, guias: guias.length, ordenesCompra: ordenesC.length, recepciones: recepciones.length, desde, desdeC, durationMs: Date.now() - t0 }
+    const detalle = {
+      pedidos: pedidos.length, facturas: facturas.length, guias: guias.length,
+      ordenesCompra: ordenesC.length, recepciones: recepciones.length,
+      detalleCompleto: { traidos: detalleFetched, capeados: detalleCapeados },
+      desde, desdeC, durationMs: Date.now() - t0,
+    }
     await supabase.from('laudus_sync_log').insert({ tipo: 'ventas+compras', ok: true, detalle, started_at: started })
 
     return new Response(JSON.stringify({ ok: true, ...detalle }), { headers: { ...cors, 'Content-Type': 'application/json' } })
