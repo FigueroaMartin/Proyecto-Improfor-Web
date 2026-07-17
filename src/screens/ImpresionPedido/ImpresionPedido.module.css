@@ -85,7 +85,7 @@
   text-overflow: ellipsis;
 }
 
-.seccion { display: flex; }
+.seccion { display: flex; border-top: 1px solid #999; }
 .vertLabel {
   flex-shrink: 0;
   width: 14px;
