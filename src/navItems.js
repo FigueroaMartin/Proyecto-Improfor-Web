@@ -46,4 +46,11 @@ export const NAV_ITEMS = {
     ruta:  '/impresion-pedido',
     color: 'var(--muted)',
   },
+  caratulas: {
+    emoji: '🏷️',
+    label: 'Generador de carátulas',
+    desc:  'Etiquetas para pegar en las cajas al despachar',
+    ruta:  '/caratulas',
+    color: 'var(--accent)',
+  },
 }

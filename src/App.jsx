@@ -9,6 +9,7 @@ import Importaciones    from './screens/Importaciones'
 import Inventario       from './screens/Inventario'
 import Pedidos          from './screens/Pedidos'
 import ImpresionPedido  from './screens/ImpresionPedido'
+import CaratulaPedido   from './screens/CaratulaPedido'
 
 // Guard: redirige a '/' si no hay perfil guardado
 function RequireAuth({ children }) {
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="/inventario"      element={<RequireAuth><Inventario /></RequireAuth>} />
         <Route path="/pedidos"         element={<RequireAuth><Pedidos /></RequireAuth>} />
         <Route path="/impresion-pedido" element={<RequireAuth><ImpresionPedido /></RequireAuth>} />
+        <Route path="/caratulas"        element={<RequireAuth><CaratulaPedido /></RequireAuth>} />
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

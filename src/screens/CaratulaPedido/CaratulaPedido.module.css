@@ -1,0 +1,93 @@
+.container {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 16px 20px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.buscador { display: flex; gap: 8px; }
+.btnAuto  { width: auto; padding: 10px 18px; }
+
+.lista { display: flex; flex-direction: column; gap: 8px; }
+.resultado {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px 14px;
+  text-align: left; transition: background 0.15s;
+}
+.resultado:hover { background: var(--panel); }
+.resNumero  { font-weight: 800; color: var(--primary); }
+.resCliente { color: var(--muted); font-size: 13px; }
+
+/* ── Controles (no se imprimen) ── */
+.controles {
+  display: flex; align-items: flex-end; flex-wrap: wrap; gap: 14px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 14px;
+}
+.controlLbl {
+  display: flex; flex-direction: column; gap: 4px;
+  font-size: 12px; font-weight: 700; color: var(--muted);
+}
+.inputCajas { width: 80px; }
+
+.tamanoGrupo { display: flex; gap: 6px; }
+.tamanoBtn {
+  border: 1.5px solid var(--border); border-radius: 8px;
+  padding: 9px 14px; font-size: 13px; font-weight: 700; color: var(--muted);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.tamanoBtn:hover { background: var(--panel); }
+.tamanoActivo { background: var(--brand); border-color: var(--brand); color: #fff; }
+
+/* ── Carátulas imprimibles ──────────────────────────────────────────────── */
+.hojaCaratulas {
+  display: flex; flex-direction: column; gap: 24px;
+  align-items: center; padding: 20px 0 60px;
+}
+
+.caratula {
+  background: #fff; color: #000;
+  border: 2px solid #000;
+  font-family: Arial, Helvetica, sans-serif;
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 20px 24px;
+}
+
+/* Tamaños: pensados para distintos formatos de caja física */
+.tPequeno { width: 320px;  font-size: 12px; }
+.tMediano { width: 460px;  font-size: 15px; }
+.tGrande  { width: 620px;  font-size: 19px; }
+
+.docTipo   { font-weight: 800; text-transform: uppercase; }
+.docNumero { font-size: 1.6em; font-weight: 800; margin-bottom: 4px; }
+
+.transportista {
+  font-weight: 800; letter-spacing: 0.5px;
+  border: 2px solid #000; border-radius: 6px;
+  padding: 6px 10px; text-align: center;
+  align-self: flex-start;
+}
+
+.bloque { display: flex; flex-direction: column; gap: 2px; }
+.lbl       { font-size: 0.75em; font-weight: 700; text-transform: uppercase; color: #444; }
+.val       { font-size: 1em; }
+.valGrande { font-size: 1.25em; font-weight: 800; }
+
+.cajaNum {
+  align-self: center; text-align: center;
+  border-top: 2px dashed #000; border-bottom: 2px dashed #000;
+  padding: 10px 0; margin: 6px 0;
+}
+
+.remitente {
+  font-size: 0.8em; color: #333; line-height: 1.4;
+  border-top: 1px solid #999; padding-top: 8px; margin-top: 4px;
+}
+
+@media print {
+  .caratula { border: 2px solid #000; page-break-after: always; }
+  .hojaCaratulas { padding: 0; gap: 0; }
+}
