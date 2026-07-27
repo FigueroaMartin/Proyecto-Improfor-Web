@@ -134,48 +134,51 @@ export default function CaratulaPedido() {
         <div id="printArea" className={styles.hojaCaratulas}>
           {cajas.map(n => (
             <div key={n} className={`${styles.caratula} ${styles[TAMANOS[tamano].clase]}`}>
-              {/* Título + N° de documento */}
-              <div className={styles.encabezado}>
-                <div className={styles.docTipo}>{datos.docTipo || (datos.tipoDespacho === 'salida_bodega' ? 'Salida de bodega' : '')}</div>
+              {/* Encabezado: tipo de documento + N° (sin logo) */}
+              <div className={styles.caja + ' ' + styles.encabezado}>
+                <div className={styles.docTipo}>{(datos.docTipo || (datos.tipoDespacho === 'salida_bodega' ? 'Salida de bodega' : '')).toUpperCase()}</div>
                 <div className={styles.docNumero}>{docNumeroVisible}</div>
               </div>
 
-              {/* Transportista + cargo cuenta, juntos como en la hoja física */}
+              {/* Cliente destinatario */}
+              <div className={styles.caja}>
+                <div className={styles.lbl}>SRES :</div>
+                <div className={styles.valGrande}>{(datos.cliente || '').toUpperCase()}</div>
+                {datos.direccion && <div className={styles.valGrande}>{datos.direccion.toUpperCase()}</div>}
+                {datos.comuna && <div className={styles.valGrande}>{datos.comuna.toUpperCase()}</div>}
+              </div>
+
+              {/* Transportista + cargo cuenta */}
               {datos.transportista && (
-                <div className={styles.transpBloque}>
+                <div className={`${styles.caja} ${styles.transpCaja}`}>
                   <div className={styles.transportista}>{datos.transportista.toUpperCase()}</div>
-                  <div className={styles.cargoCuenta}>CARGO CUENTA IMPROFOR</div>
+                  <div className={styles.transportista}>CARGO CUENTA</div>
+                  <div className={styles.transportista}>IMPROFOR</div>
                 </div>
               )}
 
-              {/* Contacto: Att. Sr. / nombre / fono / OC — un solo bloque */}
-              <div className={styles.bloque}>
-                <div className={styles.lbl}>Att. Sr.</div>
-                {datos.contacto && <div className={styles.val}>{datos.contacto}</div>}
-                <div className={styles.val}>{datos.telefonoContacto ? `FONO: ${datos.telefonoContacto}` : ''}</div>
+              {/* Contacto: Att. Sr. / nombre / fono / OC */}
+              <div className={styles.caja}>
+                <div className={styles.lbl}>ATT. SR.</div>
+                {datos.contacto && <div className={styles.val}>{datos.contacto.toUpperCase()}</div>}
+                {datos.telefonoContacto && <div className={styles.val}>FONO: {datos.telefonoContacto}</div>}
                 {datos.oc && <div className={styles.val}>OC {datos.oc}</div>}
               </div>
 
-              {/* Cliente destinatario */}
-              <div className={styles.bloque}>
-                <div className={styles.lbl}>Sres :</div>
-                <div className={styles.valGrande}>{datos.cliente}</div>
-                {datos.direccion && <div className={styles.val}>{datos.direccion}</div>}
-                {datos.comuna && <div className={styles.val}>{datos.comuna}</div>}
-              </div>
-
-              {/* Cantidad de cajas */}
-              <div className={styles.cajaNum}>
-                <div className={styles.lbl}>Box quantity</div>
-                <div className={styles.valGrande}>{String(n).padStart(2, '0')}/{String(cajas.length).padStart(2, '0')}</div>
-              </div>
-
-              {/* Remitente — fijo, siempre igual */}
-              <div className={styles.remitente}>
-                <div>IMPROFOR LTDA.</div>
-                <div>CALLE BUSTOS 2154</div>
-                <div>PROVIDENCIA.</div>
-                <div>Stgo  tel: 562-2-495-7766</div>
+              {/* Cantidad de cajas + remitente, lado a lado */}
+              <div className={styles.filaFinal}>
+                <div className={`${styles.caja} ${styles.cajaNum}`}>
+                  <div className={styles.lbl}>BOX QUANTITY</div>
+                  <div className={styles.cajaNumBox}>
+                    {String(n).padStart(2, '0')}/{String(cajas.length).padStart(2, '0')}
+                  </div>
+                </div>
+                <div className={`${styles.caja} ${styles.remitente}`}>
+                  <div>IMPROFOR LTDA.</div>
+                  <div>CALLE BUSTOS 2154</div>
+                  <div>PROVIDENCIA.</div>
+                  <div>Stgo  tel: 562-2-495-7766</div>
+                </div>
               </div>
             </div>
           ))}
