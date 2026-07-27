@@ -134,44 +134,48 @@ export default function CaratulaPedido() {
         <div id="printArea" className={styles.hojaCaratulas}>
           {cajas.map(n => (
             <div key={n} className={`${styles.caratula} ${styles[TAMANOS[tamano].clase]}`}>
-              <div className={styles.docTipo}>{datos.docTipo || (datos.tipoDespacho === 'salida_bodega' ? 'Salida de bodega' : '')}</div>
-              <div className={styles.docNumero}>{docNumeroVisible}</div>
+              {/* Título + N° de documento */}
+              <div className={styles.encabezado}>
+                <div className={styles.docTipo}>{datos.docTipo || (datos.tipoDespacho === 'salida_bodega' ? 'Salida de bodega' : '')}</div>
+                <div className={styles.docNumero}>{docNumeroVisible}</div>
+              </div>
 
+              {/* Transportista + cargo cuenta, juntos como en la hoja física */}
               {datos.transportista && (
-                <div className={styles.transportista}>{datos.transportista.toUpperCase()}</div>
-              )}
-
-              {datos.contacto && (
-                <div className={styles.bloque}>
-                  <div className={styles.lbl}>Att. Sr.</div>
-                  <div className={styles.valGrande}>{datos.contacto}</div>
+                <div className={styles.transpBloque}>
+                  <div className={styles.transportista}>{datos.transportista.toUpperCase()}</div>
+                  <div className={styles.cargoCuenta}>CARGO CUENTA IMPROFOR</div>
                 </div>
               )}
 
-              {datos.oc && (
-                <div className={styles.bloque}>
-                  <div className={styles.lbl}>OC</div>
-                  <div className={styles.val}>{datos.oc}</div>
-                </div>
-              )}
-
+              {/* Contacto: Att. Sr. / nombre / fono / OC — un solo bloque */}
               <div className={styles.bloque}>
-                <div className={styles.lbl}>Sres:</div>
+                <div className={styles.lbl}>Att. Sr.</div>
+                {datos.contacto && <div className={styles.val}>{datos.contacto}</div>}
+                <div className={styles.val}>{datos.telefonoContacto ? `FONO: ${datos.telefonoContacto}` : ''}</div>
+                {datos.oc && <div className={styles.val}>OC {datos.oc}</div>}
+              </div>
+
+              {/* Cliente destinatario */}
+              <div className={styles.bloque}>
+                <div className={styles.lbl}>Sres :</div>
                 <div className={styles.valGrande}>{datos.cliente}</div>
                 {datos.direccion && <div className={styles.val}>{datos.direccion}</div>}
                 {datos.comuna && <div className={styles.val}>{datos.comuna}</div>}
               </div>
 
+              {/* Cantidad de cajas */}
               <div className={styles.cajaNum}>
                 <div className={styles.lbl}>Box quantity</div>
                 <div className={styles.valGrande}>{String(n).padStart(2, '0')}/{String(cajas.length).padStart(2, '0')}</div>
               </div>
 
+              {/* Remitente — fijo, siempre igual */}
               <div className={styles.remitente}>
                 <div>IMPROFOR LTDA.</div>
                 <div>CALLE BUSTOS 2154</div>
                 <div>PROVIDENCIA.</div>
-                <div>Stgo tel: 562-2-495-7766</div>
+                <div>Stgo  tel: 562-2-495-7766</div>
               </div>
             </div>
           ))}

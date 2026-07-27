@@ -61,15 +61,16 @@
 .tMediano { width: 460px;  font-size: 15px; }
 .tGrande  { width: 620px;  font-size: 19px; }
 
+.encabezado { text-align: center; }
 .docTipo   { font-weight: 800; text-transform: uppercase; }
-.docNumero { font-size: 1.6em; font-weight: 800; margin-bottom: 4px; }
+.docNumero { font-size: 1.8em; font-weight: 800; margin-top: 2px; }
 
+/* Transportista + cargo cuenta van pegados, como en la hoja física */
+.transpBloque { display: flex; flex-direction: column; gap: 0; }
 .transportista {
-  font-weight: 800; letter-spacing: 0.5px;
-  border: 2px solid #000; border-radius: 6px;
-  padding: 6px 10px; text-align: center;
-  align-self: flex-start;
+  font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;
 }
+.cargoCuenta { font-weight: 700; }
 
 .bloque { display: flex; flex-direction: column; gap: 2px; }
 .lbl       { font-size: 0.75em; font-weight: 700; text-transform: uppercase; color: #444; }
